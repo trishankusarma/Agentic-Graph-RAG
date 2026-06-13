@@ -1,0 +1,19 @@
+(agenticrag) trishanku@megatron:~/workspace/Agentic-Graph-RAG$ bash run_model.sh 
+Starting Agentic-Graph-RAG Pipeline...
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Total samples: 2826
+
+Question: what is the name of justin bieber brother
+Answers  : ['Jaxon Bieber']
+Num triples: 9088
+First 10 triples:
+   ('P!nk', 'freebase.valuenotation.is_reviewed', 'Gender')
+   ('1Club.FM: Power', 'broadcast.content.artist', 'P!nk')
+   ('Somebody to Love', 'music.recording.contributions', 'm.0rqp4h0')
+   ('Rudolph Valentino', 'freebase.valuenotation.is_reviewed', 'Place of birth')
+   ('Ice Cube', 'broadcast.artist.content', '.977 The Hits Channel')
+   ('Colbie Caillat', 'broadcast.artist.content', 'Hot Wired Radio')
+   ('Stephen Melton', 'people.person.nationality', 'United States of America')
+   ('Record producer', 'music.performance_role.regular_performances', 'm.012m1vf1')
+   ('Justin Bieber', 'award.award_winner.awards_won', 'm.0yrkc0l')
+   ('1.FM Top 40', 'broadcast.content.artist', 'Geri Halliwell')
