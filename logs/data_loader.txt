@@ -1,19 +1,36 @@
-(agenticrag) trishanku@megatron:~/workspace/Agentic-Graph-RAG$ bash run_model.sh 
+(base) trishanku@megatron:~/workspace/Agentic-Graph-RAG$ bash run_model.sh 
 Starting Agentic-Graph-RAG Pipeline...
+[INFO] Downloading HotpotQA (fullwiki / validation)...
+[INFO] HTTP Request: HEAD https://huggingface.co/datasets/hotpotqa/hotpot_qa/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
 Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
-Total samples: 2826
+[WARNING] Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[INFO] HTTP Request: HEAD https://huggingface.co/api/resolve-cache/datasets/hotpotqa/hotpot_qa/1908d6afbbead072334abe2965f91bd2709910ab/README.md "HTTP/1.1 200 OK"
+[INFO] HTTP Request: HEAD https://huggingface.co/datasets/hotpotqa/hotpot_qa/resolve/1908d6afbbead072334abe2965f91bd2709910ab/hotpot_qa.py "HTTP/1.1 404 Not Found"
+[INFO] HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/hotpotqa/hotpot_qa/hotpotqa/hotpot_qa.py "HTTP/1.1 404 Not Found"
+[INFO] HTTP Request: GET https://huggingface.co/api/datasets/hotpotqa/hotpot_qa/revision/1908d6afbbead072334abe2965f91bd2709910ab "HTTP/1.1 200 OK"
+[INFO] HTTP Request: HEAD https://huggingface.co/datasets/hotpotqa/hotpot_qa/resolve/1908d6afbbead072334abe2965f91bd2709910ab/.huggingface.yaml "HTTP/1.1 404 Not Found"
+[INFO] HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=hotpotqa/hotpot_qa "HTTP/1.1 200 OK"
+[INFO] HTTP Request: GET https://huggingface.co/api/datasets/hotpotqa/hotpot_qa/tree/1908d6afbbead072334abe2965f91bd2709910ab/distractor?recursive=true&expand=false "HTTP/1.1 200 OK"
+[INFO] HTTP Request: GET https://huggingface.co/api/datasets/hotpotqa/hotpot_qa/tree/1908d6afbbead072334abe2965f91bd2709910ab?recursive=false&expand=false "HTTP/1.1 200 OK"
+[INFO] HTTP Request: HEAD https://huggingface.co/datasets/hotpotqa/hotpot_qa/resolve/1908d6afbbead072334abe2965f91bd2709910ab/dataset_infos.json "HTTP/1.1 404 Not Found"
+[INFO] HTTP Request: GET https://huggingface.co/api/datasets/hotpotqa/hotpot_qa/tree/1908d6afbbead072334abe2965f91bd2709910ab/fullwiki?recursive=true&expand=false "HTTP/1.1 200 OK"
+[INFO] Capped at 10 samples
+[INFO] Loaded 10 samples, 164 total chunks
 
-Question: what is the name of justin bieber brother
-Answers  : ['Jaxon Bieber']
-Num triples: 9088
-First 10 triples:
-   ('P!nk', 'freebase.valuenotation.is_reviewed', 'Gender')
-   ('1Club.FM: Power', 'broadcast.content.artist', 'P!nk')
-   ('Somebody to Love', 'music.recording.contributions', 'm.0rqp4h0')
-   ('Rudolph Valentino', 'freebase.valuenotation.is_reviewed', 'Place of birth')
-   ('Ice Cube', 'broadcast.artist.content', '.977 The Hits Channel')
-   ('Colbie Caillat', 'broadcast.artist.content', 'Hot Wired Radio')
-   ('Stephen Melton', 'people.person.nationality', 'United States of America')
-   ('Record producer', 'music.performance_role.regular_performances', 'm.012m1vf1')
-   ('Justin Bieber', 'award.award_winner.awards_won', 'm.0yrkc0l')
-   ('1.FM Top 40', 'broadcast.content.artist', 'Geri Halliwell')
+=== Summary ===
+    total_samples: 10
+    bridge: 7
+    comparison: 3
+    total_chunks: 164
+    gold_chunks: 9
+    avg_chunks_per_sample: 16.4
+
+=== First Sample ===
+ Q : Were Scott Derrickson and Ed Wood of the same nationality?
+ A : yes
+ type : comparison
+ gold : ['Scott Derrickson', 'Ed Wood']
+ chunks : 15
+
+ First chunk text
+ Adam Collis is an American filmmaker and actor.  He attended the Duke University from 1986 to 1990 and the University of California, Los Angeles from 2007 to 2010.  He also studied cinema at the University of Southern California from 1991 to 1997.  Collis first work was the assistant director for th
