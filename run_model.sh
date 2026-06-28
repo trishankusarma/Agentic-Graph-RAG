@@ -7,4 +7,5 @@ echo "Starting Agentic-Graph-RAG Pipeline..."
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 
 # Run Phase 1
-python3 -m kg.data_loader
+# python3 -m kg.data_loader
+python3 -m kg.hypergraph_builder

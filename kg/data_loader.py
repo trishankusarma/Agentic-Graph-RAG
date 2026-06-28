@@ -8,6 +8,10 @@ from typing import Optional
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
+# Hyper parameters
+DATASET_NAME = "hotpotqa/hotpot_qa"
+DATASET_CONFIG = "fullwiki"
+
 @dataclass
 class Chunk:
     """A single text chunk ready for hypergraph extraction"""
@@ -38,9 +42,6 @@ class HotpotQALoader:
         overlap:     sentence overlap between consecutive chunks
         max_samples: cap on number of samples to load (None = all)
         cache_path:  if set, saves/loads processed samples as JSONL"""
-    
-    DATASET_NAME = "hotpotqa/hotpot_qa"
-    DATASET_CONFIG = "fullwiki"
 
     def __init__(
         self,
@@ -62,11 +63,11 @@ class HotpotQALoader:
             logger.info(f"Loading cached samples from {self.cache_path}")
             return self._load_from_cache(self.cache_path)
         
-        logger.info(f"Downloading HotpotQA ({self.DATASET_CONFIG} / {self.split})...")
+        logger.info(f"Downloading HotpotQA ({DATASET_CONFIG} / {self.split})...")
 
         raw = load_dataset(
-            self.DATASET_NAME,
-            self.DATASET_CONFIG,
+            DATASET_NAME,
+            DATASET_CONFIG,
             split=self.split,
         )
 
