@@ -18,7 +18,6 @@ class Chunk:
     chunk_id:    str
     sample_id:   str
     title:       str          # wikipedia article title
-    text:        str          # chunk text
     sentences:   list[str]    # original sentences in this chunk
     is_gold:     bool = False # whether this chunk contains a supporting fact
 
@@ -136,7 +135,6 @@ class HotpotQALoader:
                     chunk_id    = f"{sample_id}_{title}_{i}",
                     sample_id   = sample_id,
                     title       = title,
-                    text        = " ".join(window).strip(),
                     sentences   = window,
                     is_gold     = is_gold
                 )
@@ -208,4 +206,4 @@ if __name__ == "__main__":
     print(f" gold : {s.gold_titles}")
     print(f" chunks : {len(s.chunks)}")
     print(f"\n First chunk text")
-    print(f" {s.chunks[0].text[:300]}")
+    print(f" {s.chunks[0].sentences[0][:300]}")

@@ -192,7 +192,7 @@ class HypergraphBuilder:
             [{"entities": [...], "relation": str, "sentence": str}, ...]
         Retries on JSON parse failures
         """
-        prompt = f"Extract all relational facts from this passage:\n\n{chunk.text}"
+        prompt = f"Extract all relational facts from this passage:\n\n{' '.join(chunk.sentences).strip()}"
 
         for attempt in range(self.retry_limit + 1):
             try:
@@ -208,6 +208,8 @@ class HypergraphBuilder:
                         and len(f["entities"]) >= 2
                         and isinstance(f.get("relation"), str)
                         and f["relation"].strip()
+                        and isinstance(f.get("sentence"), str)
+                        and f["sentence"].strip()
                     ):
                         valid.append(f)
                 return valid
@@ -224,7 +226,7 @@ class HypergraphBuilder:
         """Add one extracted fact as a HyperEdge + update entity nodes."""
         raw_entities = fact["entities"]
         relation     = fact["relation"].strip().lower()
-        sentence     = fact.get("sentence", chunk.text[:200])
+        sentence     = fact["sentence"]
 
         # normalize entities
         norm_entities = [self._normalize(e) for e in raw_entities]
@@ -234,7 +236,7 @@ class HypergraphBuilder:
             return
 
         # deterministic edge id from content
-        edge_content = f"{norm_entities}|{relation}|{chunk.chunk_id}"
+        edge_content = f"{sorted(norm_entities)}|{relation}|{chunk.chunk_id}"
         edge_id = "edge_" + hashlib.md5(edge_content.encode()).hexdigest()[:12]
 
         if edge_id in graph.edges:
