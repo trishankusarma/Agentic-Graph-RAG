@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass, field
 from datasets import load_dataset
 from typing import Optional
+from dataclasses import asdict
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -79,7 +80,7 @@ class HotpotQALoader:
                     f"{sum(len(s.chunks) for s in samples)} total chunks")
         
         if self.cache_path:
-            self._save_to_chache(samples. self.cache_path)
+            self._save_to_cache(samples, self.cache_path)
             logger.info(f"Cached to {self.cache_path}")
         
         return samples
@@ -147,6 +148,11 @@ class HotpotQALoader:
             for line in f:
                 samples.append(self._dict_to_sample(json.loads(line)))
         return samples
+    
+    def _save_to_cache(self, samples, path):
+        with open(path, "w", encoding="utf-8") as f:
+            for sample in samples:
+                f.write(json.dumps(asdict(sample)) + "\n")
 
     @staticmethod
     def _dict_to_sample(d: dict) -> HotpotSample:
@@ -190,7 +196,7 @@ if __name__ == "__main__":
         split="validation",
         chunk_size=5,
         overlap=1,
-        max_samples=10,
+        max_samples=5,
     )
     samples = loader.load()
 
@@ -198,12 +204,12 @@ if __name__ == "__main__":
     for k, v in loader.summary(samples).items():
         print(f"    {k}: {v}")
     
-    print("\n=== First Sample ===")
-    s = samples[0]
-    print(f" Q : {s.question}")
-    print(f" A : {s.answer}")
-    print(f" type : {s.hop_type}")
-    print(f" gold : {s.gold_titles}")
-    print(f" chunks : {len(s.chunks)}")
-    print(f"\n First chunk text")
-    print(f" {s.chunks[0].sentences[0][:300]}")
+    for index, sample in enumerate(samples):
+        print(f"\n=== Sample {index}===")
+        print(f" Q : {sample.question}")
+        print(f" A : {sample.answer}")
+        print(f" type : {sample.hop_type}")
+        print(f" gold : {sample.gold_titles}")
+        print(f" chunks : {len(sample.chunks)}")
+        print(f"\n First chunk text")
+        print(f" {sample.chunks[0].sentences[0][:300]}")
