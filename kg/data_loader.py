@@ -86,7 +86,7 @@ class HotpotQALoader:
         
     def _process_sample(self, row: dict) -> HotpotSample:
         """Convert one raw HotpotQA row into a HotpotSample."""
-        gold_titles = set(row["supporting_facts"]["title"])
+        gold_titles = list(dict.fromkeys(row["supporting_facts"]["title"]))
 
         chunks: list[Chunk] = []
         titles = row["context"]["title"]

@@ -1,0 +1,1177 @@
+{
+  "nodes": {
+    "kiss and tell": {
+      "entity_id": "kiss and tell",
+      "label": "Kiss and Tell",
+      "chunks": [
+        "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0"
+      ],
+      "edges": [
+        "edge_bdeeab8c82c6",
+        "edge_25bb4257be1f",
+        "edge_fb616e6e2a5b",
+        "edge_5f9ec88666ec"
+      ]
+    },
+    "1945": {
+      "entity_id": "1945",
+      "label": "1945",
+      "chunks": [
+        "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0"
+      ],
+      "edges": [
+        "edge_bdeeab8c82c6"
+      ]
+    },
+    "american comedy": {
+      "entity_id": "american comedy",
+      "label": "American comedy",
+      "chunks": [
+        "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0"
+      ],
+      "edges": [
+        "edge_25bb4257be1f"
+      ]
+    },
+    "shirley temple": {
+      "entity_id": "shirley temple",
+      "label": "Shirley Temple",
+      "chunks": [
+        "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0"
+      ],
+      "edges": [
+        "edge_fb616e6e2a5b"
+      ]
+    },
+    "corliss archer": {
+      "entity_id": "corliss archer",
+      "label": "Corliss Archer",
+      "chunks": [
+        "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0"
+      ],
+      "edges": [
+        "edge_fb616e6e2a5b"
+      ]
+    },
+    "two teenage girls": {
+      "entity_id": "two teenage girls",
+      "label": "two teenage girls",
+      "chunks": [
+        "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0"
+      ],
+      "edges": [
+        "edge_5f9ec88666ec"
+      ]
+    },
+    "boys": {
+      "entity_id": "boys",
+      "label": "boys",
+      "chunks": [
+        "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0"
+      ],
+      "edges": [
+        "edge_5f9ec88666ec"
+      ]
+    },
+    "parents": {
+      "entity_id": "parents",
+      "label": "parents",
+      "chunks": [
+        "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0"
+      ],
+      "edges": [
+        "edge_1a15800b6f9f"
+      ]
+    },
+    "girls": {
+      "entity_id": "girls",
+      "label": "girls",
+      "chunks": [
+        "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0"
+      ],
+      "edges": [
+        "edge_1a15800b6f9f"
+      ]
+    },
+    "problems": {
+      "entity_id": "problems",
+      "label": "problems",
+      "chunks": [
+        "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0"
+      ],
+      "edges": [
+        "edge_1a15800b6f9f"
+      ]
+    },
+    "animorphs": {
+      "entity_id": "animorphs",
+      "label": "Animorphs",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_89afc682a185",
+        "edge_c855e25d2f92",
+        "edge_cb3ad890623c",
+        "edge_28d12b0caea7",
+        "edge_5ceb830c8cf0",
+        "edge_795b7069dafd",
+        "edge_2f20df3a0441",
+        "edge_455d3cbd9dcf",
+        "edge_59878d7fb3b8",
+        "edge_47f591c166dc",
+        "edge_5296b9ea6067",
+        "edge_c642818338f5"
+      ]
+    },
+    "katherine applegate": {
+      "entity_id": "katherine applegate",
+      "label": "Katherine Applegate",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_89afc682a185",
+        "edge_38f6233da8c6"
+      ]
+    },
+    "michael grant": {
+      "entity_id": "michael grant",
+      "label": "Michael Grant",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_89afc682a185",
+        "edge_38f6233da8c6"
+      ]
+    },
+    "k. a. applegate": {
+      "entity_id": "k. a. applegate",
+      "label": "K. A. Applegate",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_38f6233da8c6"
+      ]
+    },
+    "scholastic": {
+      "entity_id": "scholastic",
+      "label": "Scholastic",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_c855e25d2f92"
+      ]
+    },
+    "first person": {
+      "entity_id": "first person",
+      "label": "first person",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_cb3ad890623c"
+      ]
+    },
+    "six main characters": {
+      "entity_id": "six main characters",
+      "label": "six main characters",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_a57a85360746"
+      ]
+    },
+    "books": {
+      "entity_id": "books",
+      "label": "books",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_a57a85360746"
+      ]
+    },
+    "narrate": {
+      "entity_id": "narrate",
+      "label": "narrate",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_a57a85360746"
+      ]
+    },
+    "horror": {
+      "entity_id": "horror",
+      "label": "Horror",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_28d12b0caea7"
+      ]
+    },
+    "war": {
+      "entity_id": "war",
+      "label": "war",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_5ceb830c8cf0"
+      ]
+    },
+    "dehumanization": {
+      "entity_id": "dehumanization",
+      "label": "dehumanization",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_795b7069dafd"
+      ]
+    },
+    "sanity": {
+      "entity_id": "sanity",
+      "label": "sanity",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_2f20df3a0441"
+      ]
+    },
+    "morality": {
+      "entity_id": "morality",
+      "label": "morality",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_455d3cbd9dcf"
+      ]
+    },
+    "innocence": {
+      "entity_id": "innocence",
+      "label": "innocence",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_59878d7fb3b8"
+      ]
+    },
+    "leadership": {
+      "entity_id": "leadership",
+      "label": "leadership",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_47f591c166dc"
+      ]
+    },
+    "freedom": {
+      "entity_id": "freedom",
+      "label": "freedom",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_5296b9ea6067"
+      ]
+    },
+    "growing up": {
+      "entity_id": "growing up",
+      "label": "growing up",
+      "chunks": [
+        "5a85ea095542994775f606a8_Animorphs_0"
+      ],
+      "edges": [
+        "edge_c642818338f5"
+      ]
+    },
+    "laleli mosque": {
+      "entity_id": "laleli mosque",
+      "label": "Laleli Mosque",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Laleli Mosque_0"
+      ],
+      "edges": [
+        "edge_d3f03fdc80c8",
+        "edge_30514e4c4b84",
+        "edge_0412eb68789c",
+        "edge_96e6587ae149",
+        "edge_972bdd23abed",
+        "edge_94d31b1dfad9",
+        "edge_39b72d24c539",
+        "edge_fc036ecfb2d2"
+      ]
+    },
+    "laleli camii": {
+      "entity_id": "laleli camii",
+      "label": "Laleli Camii",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Laleli Mosque_0"
+      ],
+      "edges": [
+        "edge_d3f03fdc80c8"
+      ]
+    },
+    "tulip mosque": {
+      "entity_id": "tulip mosque",
+      "label": "Tulip Mosque",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Laleli Mosque_0"
+      ],
+      "edges": [
+        "edge_30514e4c4b84"
+      ]
+    },
+    "ottoman": {
+      "entity_id": "ottoman",
+      "label": "Ottoman",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Laleli Mosque_0"
+      ],
+      "edges": [
+        "edge_0412eb68789c"
+      ]
+    },
+    "18th-century": {
+      "entity_id": "18th-century",
+      "label": "18th-century",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Laleli Mosque_0"
+      ],
+      "edges": [
+        "edge_96e6587ae149"
+      ]
+    },
+    "laleli": {
+      "entity_id": "laleli",
+      "label": "Laleli",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Laleli Mosque_0"
+      ],
+      "edges": [
+        "edge_972bdd23abed"
+      ]
+    },
+    "fatih": {
+      "entity_id": "fatih",
+      "label": "Fatih",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Laleli Mosque_0"
+      ],
+      "edges": [
+        "edge_94d31b1dfad9"
+      ]
+    },
+    "istanbul": {
+      "entity_id": "istanbul",
+      "label": "Istanbul",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Laleli Mosque_0",
+        "5adbf0a255429947ff17385a_Esma Sultan Mansion_0"
+      ],
+      "edges": [
+        "edge_39b72d24c539",
+        "edge_2fbaad70d3f3"
+      ]
+    },
+    "turkey": {
+      "entity_id": "turkey",
+      "label": "Turkey",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Laleli Mosque_0",
+        "5adbf0a255429947ff17385a_Esma Sultan Mansion_0"
+      ],
+      "edges": [
+        "edge_fc036ecfb2d2",
+        "edge_318e9c474f71"
+      ]
+    },
+    "esma sultan mansion": {
+      "entity_id": "esma sultan mansion",
+      "label": "Esma Sultan Mansion",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Esma Sultan Mansion_0"
+      ],
+      "edges": [
+        "edge_48df9525a1d1",
+        "edge_5f6a928ad0e1",
+        "edge_376478689bf6",
+        "edge_0b026367c4de",
+        "edge_2fbaad70d3f3",
+        "edge_318e9c474f71",
+        "edge_43d6bdda5f35",
+        "edge_ab43560fdf40"
+      ]
+    },
+    "esma sultan yal\u0131s\u0131": {
+      "entity_id": "esma sultan yal\u0131s\u0131",
+      "label": "Esma Sultan Yal\u0131s\u0131",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Esma Sultan Mansion_0"
+      ],
+      "edges": [
+        "edge_48df9525a1d1"
+      ]
+    },
+    "historical yal\u0131": {
+      "entity_id": "historical yal\u0131",
+      "label": "historical yal\u0131",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Esma Sultan Mansion_0"
+      ],
+      "edges": [
+        "edge_5f6a928ad0e1"
+      ]
+    },
+    "yal\u0131": {
+      "entity_id": "yal\u0131",
+      "label": "yal\u0131",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Esma Sultan Mansion_0"
+      ],
+      "edges": [
+        "edge_cb8a727d6f3f"
+      ]
+    },
+    "waterside mansion": {
+      "entity_id": "waterside mansion",
+      "label": "waterside mansion",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Esma Sultan Mansion_0"
+      ],
+      "edges": [
+        "edge_cb8a727d6f3f"
+      ]
+    },
+    "bosphorus": {
+      "entity_id": "bosphorus",
+      "label": "Bosphorus",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Esma Sultan Mansion_0"
+      ],
+      "edges": [
+        "edge_376478689bf6"
+      ]
+    },
+    "ortak\u00f6y": {
+      "entity_id": "ortak\u00f6y",
+      "label": "Ortak\u00f6y",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Esma Sultan Mansion_0"
+      ],
+      "edges": [
+        "edge_0b026367c4de"
+      ]
+    },
+    "esma sultan": {
+      "entity_id": "esma sultan",
+      "label": "Esma Sultan",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Esma Sultan Mansion_0"
+      ],
+      "edges": [
+        "edge_43d6bdda5f35"
+      ]
+    },
+    "cultural center": {
+      "entity_id": "cultural center",
+      "label": "cultural center",
+      "chunks": [
+        "5adbf0a255429947ff17385a_Esma Sultan Mansion_0"
+      ],
+      "edges": [
+        "edge_ab43560fdf40"
+      ]
+    },
+    "big stone gap": {
+      "entity_id": "big stone gap",
+      "label": "Big Stone Gap",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_bbf5e2be3cbd",
+        "edge_9bf6883ae9f0",
+        "edge_5521dd0ad515",
+        "edge_e53e4069c427",
+        "edge_658e23daafd1",
+        "edge_5894ec00ea4e"
+      ]
+    },
+    "2014": {
+      "entity_id": "2014",
+      "label": "2014",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_bbf5e2be3cbd"
+      ]
+    },
+    "american": {
+      "entity_id": "american",
+      "label": "American",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_bbf5e2be3cbd"
+      ]
+    },
+    "drama": {
+      "entity_id": "drama",
+      "label": "drama",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_bbf5e2be3cbd"
+      ]
+    },
+    "romantic comedy": {
+      "entity_id": "romantic comedy",
+      "label": "romantic comedy",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_bbf5e2be3cbd"
+      ]
+    },
+    "adriana trigiani": {
+      "entity_id": "adriana trigiani",
+      "label": "Adriana Trigiani",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_9bf6883ae9f0",
+        "edge_e53e4069c427"
+      ]
+    },
+    "donna gigliotti": {
+      "entity_id": "donna gigliotti",
+      "label": "Donna Gigliotti",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_5521dd0ad515"
+      ]
+    },
+    "altar identity studios": {
+      "entity_id": "altar identity studios",
+      "label": "Altar Identity Studios",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_5521dd0ad515",
+        "edge_fbcff4ccad97"
+      ]
+    },
+    "media society": {
+      "entity_id": "media society",
+      "label": "Media Society",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_fbcff4ccad97"
+      ]
+    },
+    "2000": {
+      "entity_id": "2000",
+      "label": "2000",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_e53e4069c427"
+      ]
+    },
+    "virginia": {
+      "entity_id": "virginia",
+      "label": "Virginia",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_658e23daafd1"
+      ]
+    },
+    "1970s": {
+      "entity_id": "1970s",
+      "label": "1970s",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_658e23daafd1"
+      ]
+    },
+    "virginia film festival": {
+      "entity_id": "virginia film festival",
+      "label": "Virginia Film Festival",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_5894ec00ea4e"
+      ]
+    },
+    "november 6, 2014": {
+      "entity_id": "november 6, 2014",
+      "label": "November 6, 2014",
+      "chunks": [
+        "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0"
+      ],
+      "edges": [
+        "edge_5894ec00ea4e"
+      ]
+    }
+  },
+  "edges": {
+    "edge_bdeeab8c82c6": {
+      "edge_id": "edge_bdeeab8c82c6",
+      "entities": [
+        "kiss and tell",
+        "1945"
+      ],
+      "relation": "directed_in_year",
+      "sentence": "Kiss and Tell is a 1945 American comedy film starring then 17-year-old Shirley Temple as Corliss Archer.",
+      "chunk_id": "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0",
+      "sample_id": "5a8c7595554299585d9e36b6",
+      "is_gold": true
+    },
+    "edge_25bb4257be1f": {
+      "edge_id": "edge_25bb4257be1f",
+      "entities": [
+        "kiss and tell",
+        "american comedy"
+      ],
+      "relation": "genre",
+      "sentence": "Kiss and Tell is a 1945 American comedy film starring then 17-year-old Shirley Temple as Corliss Archer.",
+      "chunk_id": "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0",
+      "sample_id": "5a8c7595554299585d9e36b6",
+      "is_gold": true
+    },
+    "edge_fb616e6e2a5b": {
+      "edge_id": "edge_fb616e6e2a5b",
+      "entities": [
+        "shirley temple",
+        "corliss archer",
+        "kiss and tell"
+      ],
+      "relation": "starring_as",
+      "sentence": "Kiss and Tell is a 1945 American comedy film starring then 17-year-old Shirley Temple as Corliss Archer.",
+      "chunk_id": "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0",
+      "sample_id": "5a8c7595554299585d9e36b6",
+      "is_gold": true
+    },
+    "edge_5f9ec88666ec": {
+      "edge_id": "edge_5f9ec88666ec",
+      "entities": [
+        "kiss and tell",
+        "two teenage girls",
+        "boys"
+      ],
+      "relation": "plot_summary",
+      "sentence": "In the film, two teenage girls cause their respective parents much concern when they start to become interested in boys.",
+      "chunk_id": "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0",
+      "sample_id": "5a8c7595554299585d9e36b6",
+      "is_gold": true
+    },
+    "edge_1a15800b6f9f": {
+      "edge_id": "edge_1a15800b6f9f",
+      "entities": [
+        "parents",
+        "girls",
+        "problems"
+      ],
+      "relation": "parent_bickering_involving",
+      "sentence": "The parents' bickering about which girl is the worse influence causes more problems than it solves.",
+      "chunk_id": "5a8c7595554299585d9e36b6_Kiss and Tell (1945 film)_0",
+      "sample_id": "5a8c7595554299585d9e36b6",
+      "is_gold": true
+    },
+    "edge_89afc682a185": {
+      "edge_id": "edge_89afc682a185",
+      "entities": [
+        "animorphs",
+        "katherine applegate",
+        "michael grant"
+      ],
+      "relation": "written_by",
+      "sentence": "Animorphs is a science fantasy series of young adult books written by Katherine Applegate and her husband Michael Grant, writing together under the name K. A. Applegate, and published by Scholastic.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_38f6233da8c6": {
+      "edge_id": "edge_38f6233da8c6",
+      "entities": [
+        "katherine applegate",
+        "michael grant",
+        "k. a. applegate"
+      ],
+      "relation": "wrote_together_as",
+      "sentence": "Animorphs is a science fantasy series of young adult books written by Katherine Applegate and her husband Michael Grant, writing together under the name K. A. Applegate, and published by Scholastic.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_c855e25d2f92": {
+      "edge_id": "edge_c855e25d2f92",
+      "entities": [
+        "animorphs",
+        "scholastic"
+      ],
+      "relation": "published_by",
+      "sentence": "Animorphs is a science fantasy series of young adult books written by Katherine Applegate and her husband Michael Grant, writing together under the name K. A. Applegate, and published by Scholastic.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_cb3ad890623c": {
+      "edge_id": "edge_cb3ad890623c",
+      "entities": [
+        "animorphs",
+        "first person"
+      ],
+      "relation": "narrative_perspective",
+      "sentence": "It is told in first person, with all six main characters taking turns narrating the books through their own perspectives.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_a57a85360746": {
+      "edge_id": "edge_a57a85360746",
+      "entities": [
+        "six main characters",
+        "books",
+        "narrate"
+      ],
+      "relation": "narrated_by",
+      "sentence": "It is told in first person, with all six main characters taking turns narrating the books through their own perspectives.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_28d12b0caea7": {
+      "edge_id": "edge_28d12b0caea7",
+      "entities": [
+        "animorphs",
+        "horror"
+      ],
+      "relation": "theme_of",
+      "sentence": "Horror, war, dehumanization, sanity, morality, innocence, leadership, freedom and growing up are the core themes of the series.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_5ceb830c8cf0": {
+      "edge_id": "edge_5ceb830c8cf0",
+      "entities": [
+        "animorphs",
+        "war"
+      ],
+      "relation": "theme_of",
+      "sentence": "Horror, war, dehumanization, sanity, morality, innocence, leadership, freedom and growing up are the core themes of the series.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_795b7069dafd": {
+      "edge_id": "edge_795b7069dafd",
+      "entities": [
+        "animorphs",
+        "dehumanization"
+      ],
+      "relation": "theme_of",
+      "sentence": "Horror, war, dehumanization, sanity, morality, innocence, leadership, freedom and growing up are the core themes of the series.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_2f20df3a0441": {
+      "edge_id": "edge_2f20df3a0441",
+      "entities": [
+        "animorphs",
+        "sanity"
+      ],
+      "relation": "theme_of",
+      "sentence": "Horror, war, dehumanization, sanity, morality, innocence, leadership, freedom and growing up are the core themes of the series.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_455d3cbd9dcf": {
+      "edge_id": "edge_455d3cbd9dcf",
+      "entities": [
+        "animorphs",
+        "morality"
+      ],
+      "relation": "theme_of",
+      "sentence": "Horror, war, dehumanization, sanity, morality, innocence, leadership, freedom and growing up are the core themes of the series.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_59878d7fb3b8": {
+      "edge_id": "edge_59878d7fb3b8",
+      "entities": [
+        "animorphs",
+        "innocence"
+      ],
+      "relation": "theme_of",
+      "sentence": "Horror, war, dehumanization, sanity, morality, innocence, leadership, freedom and growing up are the core themes of the series.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_47f591c166dc": {
+      "edge_id": "edge_47f591c166dc",
+      "entities": [
+        "animorphs",
+        "leadership"
+      ],
+      "relation": "theme_of",
+      "sentence": "Horror, war, dehumanization, sanity, morality, innocence, leadership, freedom and growing up are the core themes of the series.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_5296b9ea6067": {
+      "edge_id": "edge_5296b9ea6067",
+      "entities": [
+        "animorphs",
+        "freedom"
+      ],
+      "relation": "theme_of",
+      "sentence": "Horror, war, dehumanization, sanity, morality, innocence, leadership, freedom and growing up are the core themes of the series.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_c642818338f5": {
+      "edge_id": "edge_c642818338f5",
+      "entities": [
+        "animorphs",
+        "growing up"
+      ],
+      "relation": "theme_of",
+      "sentence": "Horror, war, dehumanization, sanity, morality, innocence, leadership, freedom and growing up are the core themes of the series.",
+      "chunk_id": "5a85ea095542994775f606a8_Animorphs_0",
+      "sample_id": "5a85ea095542994775f606a8",
+      "is_gold": true
+    },
+    "edge_d3f03fdc80c8": {
+      "edge_id": "edge_d3f03fdc80c8",
+      "entities": [
+        "laleli mosque",
+        "laleli camii"
+      ],
+      "relation": "alternative_name",
+      "sentence": "The Laleli Mosque (Turkish: \"Laleli Camii, or Tulip Mosque\") is an 18th-century Ottoman imperial mosque located in Laleli, Fatih, Istanbul, Turkey.",
+      "chunk_id": "5adbf0a255429947ff17385a_Laleli Mosque_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_30514e4c4b84": {
+      "edge_id": "edge_30514e4c4b84",
+      "entities": [
+        "laleli mosque",
+        "tulip mosque"
+      ],
+      "relation": "alternative_name",
+      "sentence": "The Laleli Mosque (Turkish: \"Laleli Camii, or Tulip Mosque\") is an 18th-century Ottoman imperial mosque located in Laleli, Fatih, Istanbul, Turkey.",
+      "chunk_id": "5adbf0a255429947ff17385a_Laleli Mosque_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_0412eb68789c": {
+      "edge_id": "edge_0412eb68789c",
+      "entities": [
+        "laleli mosque",
+        "ottoman"
+      ],
+      "relation": "affiliated_with",
+      "sentence": "The Laleli Mosque (Turkish: \"Laleli Camii, or Tulip Mosque\") is an 18th-century Ottoman imperial mosque located in Laleli, Fatih, Istanbul, Turkey.",
+      "chunk_id": "5adbf0a255429947ff17385a_Laleli Mosque_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_96e6587ae149": {
+      "edge_id": "edge_96e6587ae149",
+      "entities": [
+        "laleli mosque",
+        "18th-century"
+      ],
+      "relation": "founded_in_year",
+      "sentence": "The Laleli Mosque (Turkish: \"Laleli Camii, or Tulip Mosque\") is an 18th-century Ottoman imperial mosque located in Laleli, Fatih, Istanbul, Turkey.",
+      "chunk_id": "5adbf0a255429947ff17385a_Laleli Mosque_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_972bdd23abed": {
+      "edge_id": "edge_972bdd23abed",
+      "entities": [
+        "laleli mosque",
+        "laleli"
+      ],
+      "relation": "located_in",
+      "sentence": "The Laleli Mosque (Turkish: \"Laleli Camii, or Tulip Mosque\") is an 18th-century Ottoman imperial mosque located in Laleli, Fatih, Istanbul, Turkey.",
+      "chunk_id": "5adbf0a255429947ff17385a_Laleli Mosque_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_94d31b1dfad9": {
+      "edge_id": "edge_94d31b1dfad9",
+      "entities": [
+        "laleli mosque",
+        "fatih"
+      ],
+      "relation": "located_in",
+      "sentence": "The Laleli Mosque (Turkish: \"Laleli Camii, or Tulip Mosque\") is an 18th-century Ottoman imperial mosque located in Laleli, Fatih, Istanbul, Turkey.",
+      "chunk_id": "5adbf0a255429947ff17385a_Laleli Mosque_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_39b72d24c539": {
+      "edge_id": "edge_39b72d24c539",
+      "entities": [
+        "laleli mosque",
+        "istanbul"
+      ],
+      "relation": "located_in",
+      "sentence": "The Laleli Mosque (Turkish: \"Laleli Camii, or Tulip Mosque\") is an 18th-century Ottoman imperial mosque located in Laleli, Fatih, Istanbul, Turkey.",
+      "chunk_id": "5adbf0a255429947ff17385a_Laleli Mosque_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_fc036ecfb2d2": {
+      "edge_id": "edge_fc036ecfb2d2",
+      "entities": [
+        "laleli mosque",
+        "turkey"
+      ],
+      "relation": "located_in",
+      "sentence": "The Laleli Mosque (Turkish: \"Laleli Camii, or Tulip Mosque\") is an 18th-century Ottoman imperial mosque located in Laleli, Fatih, Istanbul, Turkey.",
+      "chunk_id": "5adbf0a255429947ff17385a_Laleli Mosque_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_48df9525a1d1": {
+      "edge_id": "edge_48df9525a1d1",
+      "entities": [
+        "esma sultan mansion",
+        "esma sultan yal\u0131s\u0131"
+      ],
+      "relation": "turkish_name",
+      "sentence": "The Esma Sultan Mansion (Turkish: \"Esma Sultan Yal\u0131s\u0131\" ),",
+      "chunk_id": "5adbf0a255429947ff17385a_Esma Sultan Mansion_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_5f6a928ad0e1": {
+      "edge_id": "edge_5f6a928ad0e1",
+      "entities": [
+        "esma sultan mansion",
+        "historical yal\u0131"
+      ],
+      "relation": "type_of",
+      "sentence": "a historical yal\u0131 (English: waterside mansion )",
+      "chunk_id": "5adbf0a255429947ff17385a_Esma Sultan Mansion_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_cb8a727d6f3f": {
+      "edge_id": "edge_cb8a727d6f3f",
+      "entities": [
+        "yal\u0131",
+        "waterside mansion"
+      ],
+      "relation": "english_translation",
+      "sentence": "(English: waterside mansion )",
+      "chunk_id": "5adbf0a255429947ff17385a_Esma Sultan Mansion_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_376478689bf6": {
+      "edge_id": "edge_376478689bf6",
+      "entities": [
+        "esma sultan mansion",
+        "bosphorus"
+      ],
+      "relation": "located_at",
+      "sentence": "located at Bosphorus in Ortak\u00f6y neighborhood of Istanbul, Turkey",
+      "chunk_id": "5adbf0a255429947ff17385a_Esma Sultan Mansion_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_0b026367c4de": {
+      "edge_id": "edge_0b026367c4de",
+      "entities": [
+        "esma sultan mansion",
+        "ortak\u00f6y"
+      ],
+      "relation": "located_in",
+      "sentence": "located at Bosphorus in Ortak\u00f6y neighborhood of Istanbul, Turkey",
+      "chunk_id": "5adbf0a255429947ff17385a_Esma Sultan Mansion_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_2fbaad70d3f3": {
+      "edge_id": "edge_2fbaad70d3f3",
+      "entities": [
+        "esma sultan mansion",
+        "istanbul"
+      ],
+      "relation": "located_in",
+      "sentence": "located at Bosphorus in Ortak\u00f6y neighborhood of Istanbul, Turkey",
+      "chunk_id": "5adbf0a255429947ff17385a_Esma Sultan Mansion_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_318e9c474f71": {
+      "edge_id": "edge_318e9c474f71",
+      "entities": [
+        "esma sultan mansion",
+        "turkey"
+      ],
+      "relation": "located_in",
+      "sentence": "located at Bosphorus in Ortak\u00f6y neighborhood of Istanbul, Turkey",
+      "chunk_id": "5adbf0a255429947ff17385a_Esma Sultan Mansion_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_43d6bdda5f35": {
+      "edge_id": "edge_43d6bdda5f35",
+      "entities": [
+        "esma sultan mansion",
+        "esma sultan"
+      ],
+      "relation": "named_after",
+      "sentence": "named after its original owner Esma Sultan,",
+      "chunk_id": "5adbf0a255429947ff17385a_Esma Sultan Mansion_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_ab43560fdf40": {
+      "edge_id": "edge_ab43560fdf40",
+      "entities": [
+        "esma sultan mansion",
+        "cultural center"
+      ],
+      "relation": "use_type",
+      "sentence": "is used today as a cultural center after being redeveloped.",
+      "chunk_id": "5adbf0a255429947ff17385a_Esma Sultan Mansion_0",
+      "sample_id": "5adbf0a255429947ff17385a",
+      "is_gold": true
+    },
+    "edge_bbf5e2be3cbd": {
+      "edge_id": "edge_bbf5e2be3cbd",
+      "entities": [
+        "big stone gap",
+        "2014",
+        "american",
+        "drama",
+        "romantic comedy"
+      ],
+      "relation": "is_a",
+      "sentence": "Big Stone Gap is a 2014 American drama romantic comedy film written and directed by Adriana Trigiani and produced by Donna Gigliotti for Altar Identity Studios, a subsidiary of Media Society.",
+      "chunk_id": "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0",
+      "sample_id": "5a8e3ea95542995a26add48d",
+      "is_gold": true
+    },
+    "edge_9bf6883ae9f0": {
+      "edge_id": "edge_9bf6883ae9f0",
+      "entities": [
+        "big stone gap",
+        "adriana trigiani"
+      ],
+      "relation": "written_and_directed_by",
+      "sentence": "Big Stone Gap is a 2014 American drama romantic comedy film written and directed by Adriana Trigiani and produced by Donna Gigliotti for Altar Identity Studios, a subsidiary of Media Society.",
+      "chunk_id": "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0",
+      "sample_id": "5a8e3ea95542995a26add48d",
+      "is_gold": true
+    },
+    "edge_5521dd0ad515": {
+      "edge_id": "edge_5521dd0ad515",
+      "entities": [
+        "big stone gap",
+        "donna gigliotti",
+        "altar identity studios"
+      ],
+      "relation": "produced_by",
+      "sentence": "Big Stone Gap is a 2014 American drama romantic comedy film written and directed by Adriana Trigiani and produced by Donna Gigliotti for Altar Identity Studios, a subsidiary of Media Society.",
+      "chunk_id": "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0",
+      "sample_id": "5a8e3ea95542995a26add48d",
+      "is_gold": true
+    },
+    "edge_fbcff4ccad97": {
+      "edge_id": "edge_fbcff4ccad97",
+      "entities": [
+        "altar identity studios",
+        "media society"
+      ],
+      "relation": "subsidiary_of",
+      "sentence": "Big Stone Gap is a 2014 American drama romantic comedy film written and directed by Adriana Trigiani and produced by Donna Gigliotti for Altar Identity Studios, a subsidiary of Media Society.",
+      "chunk_id": "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0",
+      "sample_id": "5a8e3ea95542995a26add48d",
+      "is_gold": true
+    },
+    "edge_e53e4069c427": {
+      "edge_id": "edge_e53e4069c427",
+      "entities": [
+        "big stone gap",
+        "adriana trigiani",
+        "2000"
+      ],
+      "relation": "based_on",
+      "sentence": "Based on Trigiani's 2000 best-selling novel of the same name, the story is set in the actual Virginia town of Big Stone Gap circa 1970s.",
+      "chunk_id": "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0",
+      "sample_id": "5a8e3ea95542995a26add48d",
+      "is_gold": true
+    },
+    "edge_658e23daafd1": {
+      "edge_id": "edge_658e23daafd1",
+      "entities": [
+        "big stone gap",
+        "big stone gap",
+        "virginia",
+        "1970s"
+      ],
+      "relation": "set_in_location_and_time",
+      "sentence": "Based on Trigiani's 2000 best-selling novel of the same name, the story is set in the actual Virginia town of Big Stone Gap circa 1970s.",
+      "chunk_id": "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0",
+      "sample_id": "5a8e3ea95542995a26add48d",
+      "is_gold": true
+    },
+    "edge_5894ec00ea4e": {
+      "edge_id": "edge_5894ec00ea4e",
+      "entities": [
+        "big stone gap",
+        "virginia film festival",
+        "november 6, 2014"
+      ],
+      "relation": "had_world_premiere_at",
+      "sentence": "The film had its world premiere at the Virginia Film Festival on November 6, 2014.",
+      "chunk_id": "5a8e3ea95542995a26add48d_Big Stone Gap (film)_0",
+      "sample_id": "5a8e3ea95542995a26add48d",
+      "is_gold": true
+    }
+  }
+}

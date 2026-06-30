@@ -1,0 +1,114 @@
+(base) trishanku@megatron:~/workspace/Agentic-Graph-RAG$ bash run_model.sh 
+Starting Agentic-Graph-RAG Pipeline...
+[INFO] Downloading HotpotQA (fullwiki / validation)...
+[INFO] HTTP Request: HEAD https://huggingface.co/datasets/hotpotqa/hotpot_qa/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+[INFO] HTTP Request: HEAD https://huggingface.co/api/resolve-cache/datasets/hotpotqa/hotpot_qa/1908d6afbbead072334abe2965f91bd2709910ab/README.md "HTTP/1.1 200 OK"
+[INFO] HTTP Request: HEAD https://huggingface.co/datasets/hotpotqa/hotpot_qa/resolve/1908d6afbbead072334abe2965f91bd2709910ab/hotpot_qa.py "HTTP/1.1 404 Not Found"
+[INFO] HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/hotpotqa/hotpot_qa/hotpotqa/hotpot_qa.py "HTTP/1.1 404 Not Found"
+[INFO] HTTP Request: GET https://huggingface.co/api/datasets/hotpotqa/hotpot_qa/revision/1908d6afbbead072334abe2965f91bd2709910ab "HTTP/1.1 200 OK"
+[INFO] HTTP Request: HEAD https://huggingface.co/datasets/hotpotqa/hotpot_qa/resolve/1908d6afbbead072334abe2965f91bd2709910ab/.huggingface.yaml "HTTP/1.1 404 Not Found"
+[INFO] HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=hotpotqa/hotpot_qa "HTTP/1.1 200 OK"
+[INFO] HTTP Request: GET https://huggingface.co/api/datasets/hotpotqa/hotpot_qa/tree/1908d6afbbead072334abe2965f91bd2709910ab/distractor?recursive=true&expand=false "HTTP/1.1 200 OK"
+[INFO] HTTP Request: GET https://huggingface.co/api/datasets/hotpotqa/hotpot_qa/tree/1908d6afbbead072334abe2965f91bd2709910ab?recursive=false&expand=false "HTTP/1.1 200 OK"
+[INFO] HTTP Request: HEAD https://huggingface.co/datasets/hotpotqa/hotpot_qa/resolve/1908d6afbbead072334abe2965f91bd2709910ab/dataset_infos.json "HTTP/1.1 404 Not Found"
+[INFO] HTTP Request: GET https://huggingface.co/api/datasets/hotpotqa/hotpot_qa/tree/1908d6afbbead072334abe2965f91bd2709910ab/fullwiki?recursive=true&expand=false "HTTP/1.1 200 OK"
+[INFO] Capped at 5 samples
+[INFO] Loaded 5 samples, 75 total chunks
+[INFO] Ollama ready - model: deepseek-r1:32b
+[INFO] Loading hypergraph from cache: data/hypergraph_cache.json
+[INFO] GraphStore ready -- 60 nodes71 projected edges(from 43 hyperedges)
+
+=== Graph Stats ===
+  num_nodes: 60
+  num_edges: 71
+  num_hyperedges: 43
+  avg_degree: 2.37
+  num_components: 7
+  density: 0.0401
+
+=== Broken Hop Audit ===
+[INFO] [comparison] Q: Were Scott Derrickson and Ed Wood of the same nationality?... | src_entities: ['Scott Derrickson', 'Ed Wood'] | dst: yes
+
+  Q: Were Scott Derrickson and Ed Wood of the same nationality?
+  sample_id             : 5a8b57f25542995d1e6f1371
+  hop_type              : comparison
+  is_answerable         : False
+  question_entities     : ['Scott Derrickson', 'Ed Wood']
+  answer                : yes
+  num_chains            : 2
+  total_broken_hops     : 4
+  gold_titles           : ['Scott Derrickson', 'Ed Wood']
+
+  chain_1 (BROKEN):
+    src -> Scott Derrickson  ⚠ BROKEN
+    Scott Derrickson -> dst  ⚠ BROKEN
+
+  chain_2 (BROKEN):
+    src -> Ed Wood  ⚠ BROKEN
+    Ed Wood -> dst  ⚠ BROKEN
+[INFO] [bridge] Q: What government position was held by the woman who portrayed... | src_entities: ['Corliss Archer', 'Kiss and Tell'] | dst: Chief of Protocol
+
+  Q: What government position was held by the woman who portrayed Corliss Archer in t
+  sample_id             : 5a8c7595554299585d9e36b6
+  hop_type              : bridge
+  is_answerable         : False
+  question_entities     : ['Corliss Archer', 'Kiss and Tell']
+  answer                : Chief of Protocol
+  num_chains            : 1
+  total_broken_hops     : 2
+  gold_titles           : ['Kiss and Tell (1945 film)', 'Shirley Temple']
+
+  chain_1 (BROKEN):
+    src -> Kiss and Tell (1945 film)  ✓  via [starring_as]
+    Kiss and Tell (1945 film) -> Shirley Temple  ⚠ BROKEN
+    Shirley Temple -> dst  ⚠ BROKEN
+[INFO] [bridge] Q: What science fantasy young adult series, told in first perso... | src_entities: [] | dst: Animorphs
+
+  Q: What science fantasy young adult series, told in first person, has a set of comp
+  sample_id             : 5a85ea095542994775f606a8
+  hop_type              : bridge
+  is_answerable         : False
+  question_entities     : []
+  answer                : Animorphs
+  num_chains            : 1
+  total_broken_hops     : 1
+  gold_titles           : ['The Hork-Bajir Chronicles', 'Animorphs']
+
+  chain_1 (BROKEN):
+    src -> dst  ⚠ BROKEN
+[INFO] [comparison] Q: Are the Laleli Mosque and Esma Sultan Mansion located in the... | src_entities: ['Laleli Mosque', 'Esma Sultan Mansion'] | dst: no
+
+  Q: Are the Laleli Mosque and Esma Sultan Mansion located in the same neighborhood?
+  sample_id             : 5adbf0a255429947ff17385a
+  hop_type              : comparison
+  is_answerable         : False
+  question_entities     : ['Laleli Mosque', 'Esma Sultan Mansion']
+  answer                : no
+  num_chains            : 2
+  total_broken_hops     : 2
+  gold_titles           : ['Laleli Mosque', 'Esma Sultan Mansion']
+
+  chain_1 (BROKEN):
+    src -> Laleli Mosque  ✓  via [located_in]
+    Laleli Mosque -> dst  ⚠ BROKEN
+
+  chain_2 (BROKEN):
+    src -> Esma Sultan Mansion  ✓  via [located_in]
+    Esma Sultan Mansion -> dst  ⚠ BROKEN
+[INFO] [bridge] Q: The director of the romantic comedy "Big Stone Gap" is based... | src_entities: ['Big Stone Gap'] | dst: Greenwich Village, New York City
+
+  Q: The director of the romantic comedy "Big Stone Gap" is based in what New York ci
+  sample_id             : 5a8e3ea95542995a26add48d
+  hop_type              : bridge
+  is_answerable         : False
+  question_entities     : ['Big Stone Gap']
+  answer                : Greenwich Village, New York City
+  num_chains            : 1
+  total_broken_hops     : 2
+  gold_titles           : ['Big Stone Gap (film)', 'Adriana Trigiani']
+
+  chain_1 (BROKEN):
+    src -> Big Stone Gap (film)  ✓  via [is_a]
+    Big Stone Gap (film) -> Adriana Trigiani  ⚠ BROKEN
+    Adriana Trigiani -> dst  ⚠ BROKEN
+(base) trishanku@megatron:~/workspace/Agentic-Graph-RAG$ 

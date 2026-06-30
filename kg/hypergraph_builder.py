@@ -89,6 +89,20 @@ class KnowledgeHypergraph:
             "avg_edge_arity": round(avg_arity, 2),
         }
 
+    def get_edges_for_entity(self, entity_id: str) -> list[HyperEdge]:
+        node = self.nodes.get(entity_id)
+        if not node:
+            return []
+        return [self.edges[eid] for eid in node.edges if eid in self.edges]
+    
+    def get_neighbors(self, entity_id: str) -> set[str]:
+        """All entities reachable from entity_id via a single hyperEdge"""
+        neighbors = set()
+        for edge in self.get_edges_for_entity(entity_id):
+            neighbors.update(edge.entities)
+        neighbors.discard(entity_id)
+        return neighbors
+
 # LLM Extraction prompt
 EXTRACTION_SYSTEM_PROMPT = """You are a Knowledge Graph extraction engine.
 
