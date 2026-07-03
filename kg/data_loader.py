@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from datasets import load_dataset
 from typing import Optional
 from dataclasses import asdict
+from collections import defaultdict
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -19,8 +20,9 @@ class Chunk:
     chunk_id:    str
     sample_id:   str
     title:       str          # wikipedia article title
+    start_sentence: int       # the initial index of the chunk
     sentences:   list[str]    # original sentences in this chunk
-    is_gold:     bool = False # whether this chunk contains a supporting fact
+    relative_gold_sentences: list[int] # index of sentences that are in supporting facts
 
 @dataclass
 class HotpotSample:
@@ -30,7 +32,7 @@ class HotpotSample:
     answer:         str
     hop_type:       str         # "bridge" or "comparison"
     level:          str         # "easy" | "medium" | "hard"
-    gold_titles:    list[str]   # the two gold wikipedia articles
+    gold_sentences: dict[str, list[int]]        # dictionary :: str -> list[int]
     chunks:         list[Chunk] = field(default_factory=list)
 
 class HotpotQALoader:
@@ -87,19 +89,27 @@ class HotpotQALoader:
         
     def _process_sample(self, row: dict) -> HotpotSample:
         """Convert one raw HotpotQA row into a HotpotSample."""
-        gold_titles = list(dict.fromkeys(row["supporting_facts"]["title"]))
+        gold_sentences_dict = defaultdict(list)
+
+        for title, sentence_id in zip(
+            row["supporting_facts"]["title"],
+            row["supporting_facts"]["sent_id"]
+        ):
+            gold_sentences_dict[title].append(sentence_id)
 
         chunks: list[Chunk] = []
         titles = row["context"]["title"]
         sentences = row["context"]["sentences"]
+        chunk_idx = 0
 
         for title, sents in zip(titles, sentences):
-            is_gold = title in gold_titles
-            article_chunks = self._chunk_sentences(
+            gold_sentences = gold_sentences_dict.get(title, [])
+            article_chunks, chunk_idx = self._chunk_sentences(
                 sample_id = row["id"],
                 title = title,
                 sentences = sents,
-                is_gold = is_gold,
+                gold_sentences = gold_sentences,
+                chunk_idx = chunk_idx,
             )
             chunks.extend(article_chunks)
         
@@ -109,8 +119,8 @@ class HotpotQALoader:
             answer=row["answer"],
             hop_type=row["type"],
             level=row["level"],
-            gold_titles=list(gold_titles),
-            chunks = chunks
+            chunks = chunks,
+            gold_sentences = dict(gold_sentences_dict)
         )
     
     def _chunk_sentences(
@@ -118,8 +128,9 @@ class HotpotQALoader:
         sample_id: str,
         title: str,
         sentences: list[str],
-        is_gold: bool
-    ) -> list[Chunk]:
+        gold_sentences: list[int],
+        chunk_idx: int,
+    ) -> tuple[list[Chunk], int]:
         """
         Slide a window of 'chunk size' sentences over the article
         with 'overlap' sentence overlap between consecutive windows
@@ -127,20 +138,27 @@ class HotpotQALoader:
         chunks = []
         step = max(1, self.chunk_size - self.overlap)
 
-        for i, start in enumerate(range(0, len(sentences), step)):
+        for start in range(0, len(sentences), step):
             window = sentences[start : start + self.chunk_size]
+            relative_gold_sentences = [ # lets store the index of the sentences in the chunk order
+                sent_id - start
+                for sent_id in gold_sentences
+                if start <= sent_id < start + len(window)
+            ]
             if not window:
                 continue
             chunks.append(
                 Chunk(
-                    chunk_id    = f"{sample_id}_{title}_{i}",
+                    chunk_id    = f"{sample_id}_{chunk_idx}",
                     sample_id   = sample_id,
                     title       = title,
+                    start_sentence= start,
                     sentences   = window,
-                    is_gold     = is_gold
+                    relative_gold_sentences = relative_gold_sentences
                 )
             )
-        return chunks
+            chunk_idx += 1
+        return chunks, chunk_idx
     
     def _load_from_cache(self, path: str) -> list[HotpotSample]:
         samples = []
@@ -150,6 +168,7 @@ class HotpotQALoader:
         return samples
     
     def _save_to_cache(self, samples, path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             for sample in samples:
                 f.write(json.dumps(asdict(sample)) + "\n")
@@ -163,7 +182,7 @@ class HotpotQALoader:
             answer=d["answer"],
             hop_type=d["hop_type"],
             level=d["level"],
-            gold_titles=d["gold_titles"],
+            gold_sentences=d["gold_sentences"],
             chunks=chunks
         )
     
@@ -171,14 +190,9 @@ class HotpotQALoader:
         """Flatten all chunks across all samples into a single list"""
         return [chunk for sample in samples for chunk in sample.chunks]
     
-    def get_gold_chunks(self, samples: list[HotpotSample]) -> list[Chunk]:
-        """Return only chunks that contain supporting facts"""
-        return [c for c in self.get_all_chunks(samples) if c.is_gold]
-    
     def summary(self, samples: list[HotpotSample]) -> dict:
         """Quick stats about the loaded dataset."""
         all_chunks = self.get_all_chunks(samples)
-        gold_chunks = self.get_gold_chunks(samples)
         bridge = sum(1 for s in samples if s.hop_type == "bridge")
         comparison = sum(1 for s in samples if s.hop_type == "comparison")
 
@@ -187,7 +201,6 @@ class HotpotQALoader:
             "bridge"        : bridge,
             "comparison"    : comparison,
             "total_chunks"  : len(all_chunks),
-            "gold_chunks"   : len(gold_chunks),
             "avg_chunks_per_sample" : round(len(all_chunks) / len(samples), 1)
         }
 
@@ -197,6 +210,7 @@ if __name__ == "__main__":
         chunk_size=5,
         overlap=1,
         max_samples=5,
+        cache_path="data/hypergraph_cache.json",
     )
     samples = loader.load()
 
@@ -209,7 +223,7 @@ if __name__ == "__main__":
         print(f" Q : {sample.question}")
         print(f" A : {sample.answer}")
         print(f" type : {sample.hop_type}")
-        print(f" gold : {sample.gold_titles}")
+        print(f" gold titles : {sample.gold_sentences.keys()}")
         print(f" chunks : {len(sample.chunks)}")
         print(f"\n First chunk text")
         print(f" {sample.chunks[0].sentences[0][:300]}")
