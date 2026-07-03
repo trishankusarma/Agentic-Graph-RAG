@@ -22,7 +22,11 @@ class Chunk:
     title:       str          # wikipedia article title
     start_sentence: int       # the initial index of the chunk
     sentences:   list[str]    # original sentences in this chunk
-    relative_gold_sentences: list[int] # index of sentences that are in supporting facts
+    gold_sentence_offsets: list[int] # index of sentences that are in supporting facts
+
+    @property
+    def text(self):
+        return " ".join(self.sentences)
 
 @dataclass
 class HotpotSample:
@@ -140,7 +144,7 @@ class HotpotQALoader:
 
         for start in range(0, len(sentences), step):
             window = sentences[start : start + self.chunk_size]
-            relative_gold_sentences = [ # lets store the index of the sentences in the chunk order
+            gold_sentence_offsets = [ # lets store the index of the sentences in the chunk order
                 sent_id - start
                 for sent_id in gold_sentences
                 if start <= sent_id < start + len(window)
@@ -154,7 +158,7 @@ class HotpotQALoader:
                     title       = title,
                     start_sentence= start,
                     sentences   = window,
-                    relative_gold_sentences = relative_gold_sentences
+                    gold_sentence_offsets = gold_sentence_offsets
                 )
             )
             chunk_idx += 1
