@@ -46,16 +46,23 @@ logger = logging.getLogger(__name__)
 
 # Hyper-parameters
 MODEL_NAME = "deepseek-r1:32b"
+# MODEL_NAME = "Qwen2.5-32B-Instruct"
 OLLAMA_URL = "http://localhost:11434"
+MAX_TOKENS = 4096
 
 @dataclass
 class HyperEdge:
     edge_id:    str
     entities:   list[str]     # normalized entity ids
     relation:   str
+
+    sentence_index: int
     sentence:   str           # source sentence from the chunk
+
     chunk_id:   str
     sample_id:  str
+
+    confidence: float
     is_gold:    bool = False
 
 @dataclass
@@ -103,35 +110,77 @@ class KnowledgeHypergraph:
         neighbors.discard(entity_id)
         return neighbors
 
-# LLM Extraction prompt
-EXTRACTION_SYSTEM_PROMPT = """You are a Knowledge Graph extraction engine.
+EXTRACTION_SYSTEM_PROMPT = """
+You are a Knowledge Graph extraction engine.
 
-Given a passage of text, extract all n-ary relational facts
+You will receive a passage where every sentence is prefixed with a sentence index.
 
-Each fact must have:
--"entities": a list of 2 or more entity strings that participate in this relation
--"relation": a short label for the relationship (e.g. "directed_by", "nationality", "founded_in", "spounse_of")
--"sentence": the exact sentence from the passage this fact comes from
+Example:
+
+[0] Christopher Nolan directed The Dark Knight in 2008.
+[1] He is a British-American filmmaker.
+
+Extract every relational fact from the passage. Treat every numbered sentence independently.
+
+Never combine entities or information from different sentence indices.
+
+For every numbered sentence,
+extract zero or more relational facts.
+
+For each fact return:
+
+- "entities":
+    A list of two or more participating entities.
+
+- "relation":
+    A concise snake_case relation label
+    (examples: directed_by, nationality, founded_in, capital_of).
+
+- "sentence_index":
+    The integer index of the sentence from which this fact was extracted.
+
+- "confidence":
+    A float value between 0 and 1 representing the confidence score for each extracted fact
 
 Rules:
-- Entities must be proper nouns or named concepts (people, places, orgs, works, dates, nationalities)
-- Extract all facts you can find, including implicit ones
-- Each sentence can yield multiple facts
-- Relation labels must be snake_case and concise
-- Do not include generic facts like "is a person" or "exists"
-- Return ONLY a JSON array. No explanation, no markdown fences.
 
-Example output:
+- Use ONLY the provided sentence indices.
+- Every fact must originate from exactly one sentence.
+- A sentence may produce multiple facts.
+- Entities should be proper nouns or named concepts
+  (people, organizations, places, dates, works, events, nationalities, etc.).
+- Keep entity surface forms exactly as they appear in the sentence.
+- Relation labels must be concise snake_case.
+- Do not explain
+- Do not think step by step
+- Do not produce reasing
+- Do not invent facts.
+- Do not merge information across multiple sentences.
+- Do not output generic facts such as "is a person" or "exists".
+
+Return ONLY a JSON array.
+
+Example:
+
 [
   {
-    "entities": ["Christopher Nolan", "The Dark Knight", "2008"],
+    "entities": [
+      "Christopher Nolan",
+      "The Dark Knight",
+      "2008"
+    ],
     "relation": "directed_in_year",
-    "sentence": "Christopher Nolan directed The Dark Knight in 2008."
+    "sentence_index": 0,
+    "confidence": 0.97
   },
   {
-    "entities": ["Christopher Nolan", "British-American"],
+    "entities": [
+      "Christopher Nolan",
+      "British-American"
+    ],
     "relation": "nationality",
-    "sentence": "Christopher Nolan is a British-American filmmaker."
+    "sentence_index": 1,
+    "confidence": 0.95
   }
 ]
 """
@@ -153,7 +202,7 @@ class HypergraphBuilder:
             self,
             model:      str = MODEL_NAME,
             ollama_url: str = OLLAMA_URL,
-            max_tokens: int = 4096,
+            max_tokens: int = MAX_TOKENS,
             retry_limit: int = 2,
             retry_delay: float = 1.0,
             batch_delay: float = 0.0, # No rate limit on local
@@ -206,11 +255,26 @@ class HypergraphBuilder:
             [{"entities": [...], "relation": str, "sentence": str}, ...]
         Retries on JSON parse failures
         """
-        prompt = f"Extract all relational facts from this passage:\n\n{' '.join(chunk.sentences).strip()}"
+        numbered_passage = "\n".join(
+            f"[{i}] {sentence}"
+            for i, sentence in enumerate(chunk.sentences)
+        )
+
+        prompt = (
+            "Extract all relational facts from the following passage:\n\n"
+            f"{numbered_passage}"
+        )
 
         for attempt in range(self.retry_limit + 1):
             try:
                 raw = self._call_ollama(prompt)
+
+                raw = raw.strip()
+
+                if raw.startswith("```"):
+                    raw = raw.split("```")[1]
+                    raw = raw.replace("json", "", 1).strip()
+
                 facts = json.loads(raw)
 
                 # basic validation
@@ -222,8 +286,8 @@ class HypergraphBuilder:
                         and len(f["entities"]) >= 2
                         and isinstance(f.get("relation"), str)
                         and f["relation"].strip()
-                        and isinstance(f.get("sentence"), str)
-                        and f["sentence"].strip()
+                        and isinstance(f.get("sentence_index"), int)
+                        and 0 <= f["sentence_index"] < len(chunk.sentences)
                     ):
                         valid.append(f)
                 return valid
@@ -240,7 +304,8 @@ class HypergraphBuilder:
         """Add one extracted fact as a HyperEdge + update entity nodes."""
         raw_entities = fact["entities"]
         relation     = fact["relation"].strip().lower()
-        sentence     = fact["sentence"]
+        sentence_index     = fact["sentence_index"]
+        confidence = fact["confidence"]
 
         # normalize entities
         norm_entities = [self._normalize(e) for e in raw_entities]
@@ -261,10 +326,12 @@ class HypergraphBuilder:
             edge_id   = edge_id,
             entities  = norm_entities,
             relation  = relation,
-            sentence  = sentence,
+            sentence_index = sentence_index,
+            sentence  = chunk.sentences[sentence_index],
             chunk_id  = chunk.chunk_id,
             sample_id = chunk.sample_id,
-            is_gold   = chunk.is_gold,
+            confidence = confidence,
+            is_gold   = sentence_index in chunk.gold_sentence_offsets,
         )
         graph.edges[edge_id] = edge
 
@@ -324,7 +391,11 @@ class HypergraphBuilder:
             json=payload,
             timeout=120,
         )
-        resp.raise_for_status()
+        if not resp.ok:
+            print(resp.status_code)
+            print(resp.text)
+            resp.raise_for_status()
+            
         return resp.json()["message"]["content"].strip()
     
     def _load_from_cache(self, path: str) -> KnowledgeHypergraph:
@@ -367,12 +438,13 @@ if __name__ == "__main__":
         chunk_size=5,
         overlap=1,
         max_samples=3,
+        cache_path="data/hyper_graph_builder.json",
     )
 
     samples = loader.load()
 
     # Step 2: building a hypergraph
-    gold_chunks = loader.get_gold_chunks(samples)
+    gold_chunks = loader.get_all_chunks(samples)
     logger.info(f"2. Running extraction on {len(gold_chunks)} gold chunks")
 
     builder = HypergraphBuilder(

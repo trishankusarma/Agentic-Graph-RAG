@@ -214,7 +214,7 @@ if __name__ == "__main__":
         chunk_size=5,
         overlap=1,
         max_samples=5,
-        cache_path="data/hypergraph_cache.json",
+        cache_path="data/data_loader_cache.json",
     )
     samples = loader.load()
 
