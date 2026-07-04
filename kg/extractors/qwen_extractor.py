@@ -5,7 +5,7 @@ LLMExtractor backend for any OpenAI-compatible API.
 Works with vLLM, LM Studio, OpenAI, together.ai, etc.
  
 vLLM serving example (local model path):
-    vllm serve /path/to/Qwen2.5-32B-Instruct \
+    vllm serve /home/models/Qwen2.5-32B-Instruct \
         --served-model-name qwen2.5-32b \
         --port 8000 \
         --dtype bfloat16 \

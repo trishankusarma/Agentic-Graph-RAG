@@ -1,67 +1,38 @@
 """
 kg/hypergraph_builder.py
-
-Builds a knowledge hypergraph G = (V, E_H) from tex chunks.
-
-Each hyperedge is an n-ary relational fact:
-    {
-        "edge_id":   str,
-        "entities":  [str, ...], # 2+ participating entities
-        "relation":  str,        # semantic relation label
-        "sentence":  str,        # source sentence
-        "chunk_id":  str,        # back-reference to chunk
-        "sample_id": str,
-        "is_gold":   bool
-    }
-
-Node (entity) structure:
-    {
-        "entity_id":  str,              # normalized lowercase
-        "label":      str,              # original surface form
-        "chunks":     [chunk_id, ...]   # all chunks this entity appears in
-        "edges":      [edge_id, ...]    # all hyperedges this entity participates in
-    }
-
-Pipeline per chunk:
-    chunk text
-        -> LLM extraction prompt
-        -> JSON list of (entities, relation, sentence) triples
-        -> deduplicate entities (normalize)
-        -> build hyperedge objects
-        -> update node index
+ 
+Orchestrates hypergraph construction from text chunks.
+Extraction is fully delegated to a BaseExtractor subclass —
+swap OllamaExtractor for QwenExtractor with zero changes here.
+ 
+Pipeline:
+    chunks → extractor.extract(chunk) → facts → _add_fact_to_graph()
+                                                → KnowledgeHypergraph
 """
+import hashlib
+import json
 import logging
 import os
-import json
-import requests
-import hashlib
-import time
 from dataclasses import dataclass, field
 from typing import Optional
-
-from .data_loader import Chunk
-
+ 
+from kg.data_loader import Chunk
+from kg.extractors.base import BaseExtractor
+from kg.extractors.ollama_extractor import OllamaBackend
+from kg.extractors.qwen_extractor import OpenAIBackend
+ 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
-
-# Hyper-parameters
-MODEL_NAME = "deepseek-r1:32b"
-# MODEL_NAME = "Qwen2.5-32B-Instruct"
-OLLAMA_URL = "http://localhost:11434"
-MAX_TOKENS = 4096
 
 @dataclass
 class HyperEdge:
     edge_id:    str
     entities:   list[str]     # normalized entity ids
     relation:   str
-
     sentence_index: int
     sentence:   str           # source sentence from the chunk
-
     chunk_id:   str
     sample_id:  str
-
     confidence: float
     is_gold:    bool = False
 
@@ -110,137 +81,48 @@ class KnowledgeHypergraph:
         neighbors.discard(entity_id)
         return neighbors
 
-EXTRACTION_SYSTEM_PROMPT = """
-You are a Knowledge Graph extraction engine.
-
-You will receive a passage where every sentence is prefixed with a sentence index.
-
-Example:
-
-[0] Christopher Nolan directed The Dark Knight in 2008.
-[1] He is a British-American filmmaker.
-
-Extract every relational fact from the passage. Treat every numbered sentence independently.
-
-Never combine entities or information from different sentence indices.
-
-For every numbered sentence,
-extract zero or more relational facts.
-
-For each fact return:
-
-- "entities":
-    A list of two or more participating entities.
-
-- "relation":
-    A concise snake_case relation label
-    (examples: directed_by, nationality, founded_in, capital_of).
-
-- "sentence_index":
-    The integer index of the sentence from which this fact was extracted.
-
-- "confidence":
-    A float value between 0 and 1 representing the confidence score for each extracted fact
-
-Rules:
-
-- Use ONLY the provided sentence indices.
-- Every fact must originate from exactly one sentence.
-- A sentence may produce multiple facts.
-- Entities should be proper nouns or named concepts
-  (people, organizations, places, dates, works, events, nationalities, etc.).
-- Keep entity surface forms exactly as they appear in the sentence.
-- Relation labels must be concise snake_case.
-- Do not explain
-- Do not think step by step
-- Do not produce reasing
-- Do not invent facts.
-- Do not merge information across multiple sentences.
-- Do not output generic facts such as "is a person" or "exists".
-
-Return ONLY a JSON array.
-
-Example:
-
-[
-  {
-    "entities": [
-      "Christopher Nolan",
-      "The Dark Knight",
-      "2008"
-    ],
-    "relation": "directed_in_year",
-    "sentence_index": 0,
-    "confidence": 0.97
-  },
-  {
-    "entities": [
-      "Christopher Nolan",
-      "British-American"
-    ],
-    "relation": "nationality",
-    "sentence_index": 1,
-    "confidence": 0.95
-  }
-]
-"""
-
 class HypergraphBuilder:
     """
-    Extracts n-ary relational facts from text chunks via LLM and builds a KnowledgeHypergraph
-
+    Builds a KnowledgeHypergraph from text chunks.
+ 
     Args:
-        model:          Ollama model name (default: deepseek-r1:32b)
-        ollama_url:     Ollama API base URL
-        max_tokens:     max tokens for LLM response
-        retry_limit:    number of retries on parse failure
-        retry_delay:    seconds between retries
-        batch_delay:    seconds between chunk calls (rate limit buffer)
-        cache_path:     if set, saves/loads the hypergraph as JSON
+        extractor:  Any BaseExtractor subclass (OllamaExtractor, QwenExtractor, ...)
+        cache_path: if set, saves/loads the hypergraph as JSON
     """
     def __init__(
             self,
-            model:      str = MODEL_NAME,
-            ollama_url: str = OLLAMA_URL,
-            max_tokens: int = MAX_TOKENS,
-            retry_limit: int = 2,
-            retry_delay: float = 1.0,
-            batch_delay: float = 0.0, # No rate limit on local
-            cache_path: Optional[str] = None,
+            extractor: BaseExtractor,
+            cache_path: Optional[str] = None
     ):
-        self.model = model
-        self.ollama_url = ollama_url.rstrip("/")
-        self.max_tokens = max_tokens
-        self.retry_limit = retry_limit
-        self.retry_delay = retry_delay
-        self.batch_delay = batch_delay
+        self.extractor  = extractor
         self.cache_path = cache_path
-        self._verify_ollama()
+ 
+        if not self.extractor.is_available():
+            raise RuntimeError(
+                f"Extractor {type(extractor).__name__} is not available. "
+                "Check your backend and model."
+            )
     
     def build(self, chunks: list[Chunk]) -> KnowledgeHypergraph:
-        """
-        Main entry: Process all chunks and return a Knowledge Hypergraph
-        Loads from cache if available
-        """
+        """Process all chunks and return a KnowledgeHypergraph."""
         if self.cache_path and os.path.exists(self.cache_path):
             logger.info(f"Loading hypergraph from cache: {self.cache_path}")
             return self._load_from_cache(self.cache_path)
-        
+ 
         graph = KnowledgeHypergraph(nodes={}, edges={})
-
-        logger.info(f"Extracting hyperedges from {len(chunks)} chunks")
+ 
+        logger.info(f"Extracting hyperedges from {len(chunks)} chunks ...")
         for i, chunk in enumerate(chunks):
-            facts = self._extract_facts(chunk)
+            facts = self.extractor.extract(chunk)
             for fact in facts:
                 self._add_fact_to_graph(graph, fact, chunk)
-            
-            if (i+1) % 10 == 0:
-                logger.info(f" processed {i+1}/{len(chunks)} chunks | "
-                            f"nodes={graph.num_nodes()} edges={graph.num_edges()}")
-            
-            if self.batch_delay > 0:
-                time.sleep(self.batch_delay)
-            
+ 
+            if (i + 1) % 10 == 0:
+                logger.info(
+                    f"  processed {i+1}/{len(chunks)} chunks | "
+                    f"nodes={graph.num_nodes()} edges={graph.num_edges()}"
+                )
+ 
         logger.info(f"Hypergraph built: {graph.summary()}")
 
         if self.cache_path:
@@ -248,57 +130,6 @@ class HypergraphBuilder:
             logger.info(f"Hypergraph cached to {self.cache_path}")
         
         return graph
-    
-    def _extract_facts(self, chunk: Chunk) -> list[dict]:
-        """
-        Call LLM on a single chunk. Return list of raw fact dicts:
-            [{"entities": [...], "relation": str, "sentence": str}, ...]
-        Retries on JSON parse failures
-        """
-        numbered_passage = "\n".join(
-            f"[{i}] {sentence}"
-            for i, sentence in enumerate(chunk.sentences)
-        )
-
-        prompt = (
-            "Extract all relational facts from the following passage:\n\n"
-            f"{numbered_passage}"
-        )
-
-        for attempt in range(self.retry_limit + 1):
-            try:
-                raw = self._call_ollama(prompt)
-
-                raw = raw.strip()
-
-                if raw.startswith("```"):
-                    raw = raw.split("```")[1]
-                    raw = raw.replace("json", "", 1).strip()
-
-                facts = json.loads(raw)
-
-                # basic validation
-                valid = []
-                for f in facts:
-                    if (
-                        isinstance(f, dict)
-                        and isinstance(f.get("entities"), list)
-                        and len(f["entities"]) >= 2
-                        and isinstance(f.get("relation"), str)
-                        and f["relation"].strip()
-                        and isinstance(f.get("sentence_index"), int)
-                        and 0 <= f["sentence_index"] < len(chunk.sentences)
-                    ):
-                        valid.append(f)
-                return valid
-            except (json.JSONDecodeError, KeyError, IndexError) as e:
-                if attempt < self.retry_limit:
-                    logger.warning(f"Parse failed for chunk {chunk.chunk_id} "
-                                   F"(attempt {attempt+1}): {e} - retrying")
-                    time.sleep(self.retry_delay)
-                else:
-                    logger.error(f"Giving up on chunk {chunk.chunk_id}: {e}")
-                    return []
     
     def _add_fact_to_graph(self, graph: KnowledgeHypergraph, fact: dict, chunk: Chunk)->None:
         """Add one extracted fact as a HyperEdge + update entity nodes."""
@@ -312,7 +143,7 @@ class HypergraphBuilder:
 
         # skip if duplicate entities in the same fact
         if len(set(norm_entities)) < 2:
-            return
+            return # skip degenrate facts
 
         # deterministic edge id from content
         edge_content = f"{sorted(norm_entities)}|{relation}|{chunk.chunk_id}"
@@ -348,55 +179,6 @@ class HypergraphBuilder:
     @staticmethod
     def _normalize(label: str) -> str:
         return label.lower().strip()
-
-    def _verify_ollama(self) -> None:
-        """Check Ollama is reachable and the model is available."""
-        try:
-            resp = requests.get(f"{self.ollama_url}/api/tags", timeout=5)
-            resp.raise_for_status()
-            models = [m["name"] for m in resp.json().get("models", [])]
-
-            if not any(self.model in m for m in models):
-                logger.warning(
-                    f"Model '{self.model}' not found in Ollama"
-                    f"Run: ollama pull {self.model}"
-                )
-            else:
-                logger.info(f"Ollama ready - model: {self.model}")
-        except requests.exceptions.ConnectionError:
-            raise RuntimeError(
-                "Cannot reach Ollama at "
-                f"{self.ollama_url}. Is it running? -> Ollama serve"
-            )
-    
-    def _call_ollama(self, prompt: str) -> str:
-        """
-        Call Ollama /api/chat endpoint with the extraction prompt
-        Returns raw text response
-        """
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
-                {"role": "user", "content": prompt}
-            ],
-            "stream": False,
-            "options": {
-                "num_predict": self.max_tokens,
-                "temperature": 0.0 # deterministic extraction
-            }
-        }
-        resp = requests.post(
-            f"{self.ollama_url}/api/chat",
-            json=payload,
-            timeout=120,
-        )
-        if not resp.ok:
-            print(resp.status_code)
-            print(resp.text)
-            resp.raise_for_status()
-            
-        return resp.json()["message"]["content"].strip()
     
     def _load_from_cache(self, path: str) -> KnowledgeHypergraph:
         with open(path, "r", encoding="utf-8") as f:
@@ -418,8 +200,9 @@ class HypergraphBuilder:
             "edges": {
                 eid: {
                     "edge_id": e.edge_id, "entities": e.entities,
-                    "relation": e.relation, "sentence": e.sentence,
-                    "chunk_id": e.chunk_id, "sample_id": e.sample_id,
+                    "relation": e.relation, "sentence_index": e.sentence_index,
+                    "sentence": e.sentence, "chunk_id": e.chunk_id,
+                    "sample_id": e.sample_id, "confidence": e.confidence,
                     "is_gold": e.is_gold
                 }
                 for eid, e in graph.edges.items()
@@ -430,6 +213,8 @@ class HypergraphBuilder:
 
 if __name__ == "__main__":
     from kg.data_loader import HotpotQALoader
+    from kg.extractors.ollama_extractor import OllamaBackend
+    from kg.extractors.qwen_extractor import OpenAIBackend
 
     # Step 1: loading a tiny slice
     logger.info("1. Loading a slice of hotpot qa dataset")
@@ -437,21 +222,22 @@ if __name__ == "__main__":
         split="validation",
         chunk_size=5,
         overlap=1,
-        max_samples=3,
-        cache_path="data/hyper_graph_builder.json",
+        max_samples=1
     )
 
     samples = loader.load()
 
     # Step 2: building a hypergraph
-    gold_chunks = loader.get_all_chunks(samples)
-    logger.info(f"2. Running extraction on {len(gold_chunks)} gold chunks")
+    all_chunks = loader.get_all_chunks(samples)
+    logger.info(f"2. Running extraction on {len(all_chunks)} chunks")
 
+    # extractor = OllamaBackend(model="deepseek-r1:32b")
+    extractor = OpenAIBackend(model="qwen2.5-32b", api_url="http://localhost:8000")
     builder = HypergraphBuilder(
-        model=MODEL_NAME,
-        ollama_url=OLLAMA_URL
+        extractor=extractor,
+        cache_path="data/hyper_graph_builder.json",
     )
-    graph = builder.build(gold_chunks)
+    graph = builder.build(all_chunks)
 
     logger.info("== Hypergraph Summary ==")
     for k, v in graph.summary().items():
@@ -459,7 +245,7 @@ if __name__ == "__main__":
     
     # show edges for a known entity
     logger.info("== Sample edges ==")
-    for edge in list(graph.edges.values())[:3]:
+    for edge in list(graph.edges.values())[:10]:
         print(f"\n  edge_id  : {edge.edge_id}")
         print(f"  entities : {edge.entities}")
         print(f"  relation : {edge.relation}")
