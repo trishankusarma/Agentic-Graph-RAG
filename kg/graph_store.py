@@ -49,7 +49,11 @@ import networkx as nx
 from .data_loader import HotpotSample
 from .hypergraph_builder import HyperEdge, KnowledgeHypergraph
 
-logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging.getLogger(__name__)
 
 # Hyper-parameters

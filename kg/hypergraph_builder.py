@@ -21,7 +21,11 @@ from kg.extractors.base import BaseExtractor
 from kg.extractors.ollama_extractor import OllamaBackend
 from kg.extractors.qwen_extractor import OpenAIBackend
  
-logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -235,7 +239,7 @@ if __name__ == "__main__":
     extractor = OpenAIBackend(model="qwen2.5-32b", api_url="http://localhost:8000")
     builder = HypergraphBuilder(
         extractor=extractor,
-        cache_path="data/hyper_graph_builder.json",
+        cache_path="data/hyper_graph_builder_qwen.json",
     )
     graph = builder.build(all_chunks)
 
