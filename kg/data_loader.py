@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Hyper parameters
 DATASET_NAME = "hotpotqa/hotpot_qa"
-DATASET_CONFIG = "fullwiki"
+DATASET_CONFIG = "distractor"
 
 @dataclass
 class Chunk:

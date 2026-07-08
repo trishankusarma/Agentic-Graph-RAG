@@ -226,7 +226,7 @@ if __name__ == "__main__":
         split="validation",
         chunk_size=5,
         overlap=1,
-        max_samples=1
+        max_samples=5
     )
 
     samples = loader.load()
