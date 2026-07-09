@@ -18,8 +18,6 @@ from typing import Optional
  
 from kg.data_loader import Chunk
 from kg.extractors.base import BaseExtractor
-from kg.extractors.ollama_extractor import OllamaBackend
-from kg.extractors.qwen_extractor import OpenAIBackend
  
 logging.basicConfig(
     level=logging.INFO,
