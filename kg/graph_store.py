@@ -5,7 +5,7 @@ Thin facade composing PathFinder + BrokenHopDetector.
 This is the single public entry point for main.py.
 
 Usage:
-    extractor = OpenAIBackend(model="qwen2.5-32b", api_url="http://localhost:8000")
+    extractor = OpenAIBackend(model="qwen3-14b", api_url="http://localhost:8000")
     builder   = HypergraphBuilder(extractor=extractor, cache_path="...")
     graph     = builder.build(loader.get_all_chunks(samples))
 
@@ -72,26 +72,26 @@ if __name__ == "__main__":
         split="validation",
         chunk_size=5,
         overlap=1,
-        max_samples=5,
+        max_samples=20,
     )
     samples = loader.load()
 
-    extractor = OpenAIBackend(model="qwen2.5-32b", api_url="http://localhost:8000")
-    builder   = HypergraphBuilder(
-        extractor=extractor,
-        cache_path="data/hyper_graph_builder_qwen.json",
-    )
-    graph = builder.build(loader.get_all_chunks(samples))
+    extractor = OpenAIBackend(model="qwen3-14b", api_url="http://localhost:8000")
 
-    store = GraphStore(graph, extractor=extractor)
-    store.index_samples(samples)
-
-    print("\n=== Graph Stats ===")
-    for k, v in store.stats().items():
-        print(f"  {k}: {v}")
-
-    print("\n=== Broken Hop Audit ===")
     for sample in samples:
+        builder   = HypergraphBuilder(
+            extractor=extractor,
+        )
+        graph = builder.build(sample.chunks)
+
+        store = GraphStore(graph, extractor=extractor)
+        store.index_samples([sample])
+
+        print("\n=== Graph Stats ===")
+        for k, v in store.stats().items():
+            print(f"  {k}: {v}")
+
+        print("\n=== Broken Hop Audit ===")
         report = store.check_broken_hops(sample)
         print(f"\n  Q: {sample.question[:80]}")
         for k, v in report.summary().items():

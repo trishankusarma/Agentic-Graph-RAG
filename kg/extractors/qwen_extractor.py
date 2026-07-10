@@ -1,11 +1,11 @@
 """
 kg/extractors/openai_extractor.py
- 
+
 LLMExtractor backend for any OpenAI-compatible API.
 Works with vLLM, LM Studio, OpenAI, together.ai, etc.
- 
+
 vLLM serving example (local model path):
-    vllm serve /home/models/Qwen2.5-32B-Instruct \
+    vllm serve /path/to/Qwen2.5-32B-Instruct \
         --served-model-name qwen2.5-32b \
         --port 8000 \
         --dtype bfloat16 \
@@ -16,21 +16,14 @@ vLLM serving example (local model path):
 import logging
 import requests
 from kg.extractors.base import LLMExtractor
- 
+
 logger = logging.getLogger(__name__)
 
-# Hyper-parameters
-MODEL_NAME = "qwen2.5-32b"
-OLLAMA_URL = "http://localhost:8000"
-API_KEY = "EMPTY"
-MAX_TOKENS = 4096
-RETRY_LIMIT = 2
-RETRY_DELAY = 1.0
 
 class OpenAIBackend(LLMExtractor):
     """
     OpenAI-compatible backend — POST /v1/chat/completions.
- 
+
     Args:
         model:      Model name as registered in the server
         api_url:    Base URL (e.g. "http://localhost:8000" for local vLLM)
@@ -38,14 +31,16 @@ class OpenAIBackend(LLMExtractor):
         max_tokens: max tokens for response
         retry_limit/retry_delay: inherited from LLMExtractor
     """
+
     def __init__(
         self,
-        model:       str   = MODEL_NAME,
-        api_url:     str   = OLLAMA_URL,
-        api_key:     str   = API_KEY,
-        max_tokens:  int   = MAX_TOKENS,
-        retry_limit: int   = RETRY_LIMIT,
-        retry_delay: float = RETRY_DELAY,
+        model:           str   = "qwen2.5-32b",
+        api_url:         str   = "http://localhost:8000",
+        api_key:         str   = "EMPTY",
+        max_tokens:      int   = 4096,
+        retry_limit:     int   = 2,
+        retry_delay:     float = 1.0,
+        enable_thinking: bool  = False,   # Qwen3: keep False for fast extraction
     ):
         super().__init__(
             model=model,
@@ -53,8 +48,9 @@ class OpenAIBackend(LLMExtractor):
             retry_limit=retry_limit,
             retry_delay=retry_delay,
         )
-        self.api_url = api_url.rstrip("/")
-        self.api_key = api_key
+        self.api_url         = api_url.rstrip("/")
+        self.api_key         = api_key
+        self.enable_thinking = enable_thinking
 
     def is_available(self) -> bool:
         try:
@@ -89,6 +85,9 @@ class OpenAIBackend(LLMExtractor):
             ],
             "max_tokens":  self.max_tokens,
             "temperature": 0.0,
+            # disable Qwen3 thinking — massive speedup for structured extraction.
+            # harmless for non-thinking models (they ignore it).
+            "chat_template_kwargs": {"enable_thinking": self.enable_thinking},
         }
         resp = requests.post(
             f"{self.api_url}/v1/chat/completions",

@@ -234,7 +234,7 @@ if __name__ == "__main__":
     logger.info(f"2. Running extraction on {len(all_chunks)} chunks")
 
     # extractor = OllamaBackend(model="deepseek-r1:32b")
-    extractor = OpenAIBackend(model="qwen2.5-32b", api_url="http://localhost:8000")
+    extractor = OpenAIBackend(model="qwen3-14b", api_url="http://localhost:8000")
     builder = HypergraphBuilder(
         extractor=extractor,
         cache_path="data/hyper_graph_builder_qwen.json",
