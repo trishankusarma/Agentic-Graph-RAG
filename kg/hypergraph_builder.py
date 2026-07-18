@@ -322,12 +322,12 @@ if __name__ == "__main__":
 
     logger.info("== Hypergraph Summary ==")
     for k, v in graph.summary().items():
-        print(f" {k}: {v}")
+        logger.info(f" {k}: {v}")
 
     logger.info("== Sample edges ==")
     for edge in list(graph.edges.values())[:10]:
-        print(f"\n  edge_id  : {edge.edge_id}")
-        print(f"  entities : {edge.entities}")
-        print(f"  relation : {edge.relation}")
-        print(f"  sentence : {edge.sentence[:100]}")
-        print(f"  is_gold  : {edge.is_gold}")
+        logger.info(f"\n  edge_id  : {edge.edge_id}")
+        logger.info(f"  entities : {edge.entities}")
+        logger.info(f"  relation : {edge.relation}")
+        logger.info(f"  sentence : {edge.sentence[:100]}")
+        logger.info(f"  is_gold  : {edge.is_gold}")

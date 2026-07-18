@@ -275,17 +275,17 @@ if __name__ == "__main__":
     )
     samples = loader.load()
 
-    print("\n=== Summary ===")
+    logger.info("\n=== Summary ===")
     for k, v in loader.summary(samples).items():
-        print(f"    {k}: {v}")
+        logger.info(f"    {k}: {v}")
 
     for index, sample in enumerate(samples):
-        print(f"\n=== Sample {index} ===")
-        print(f" Q : {sample.question}")
-        print(f" A : {sample.answer}")
-        print(f" type : {sample.hop_type}")
-        print(f" gold titles : {list(sample.gold_sentences.keys())}")
-        print(f" chunks : {len(sample.chunks)}")
+        logger.info(f"\n=== Sample {index} ===")
+        logger.info(f" Q : {sample.question}")
+        logger.info(f" A : {sample.answer}")
+        logger.info(f" type : {sample.hop_type}")
+        logger.info(f" gold titles : {list(sample.gold_sentences.keys())}")
+        logger.info(f" chunks : {len(sample.chunks)}")
         if sample.chunks:
-            print(f"\n First chunk text")
-            print(f" {sample.chunks[0].sentences[0][:300]}")
+            logger.info(f"\n First chunk text")
+            logger.info(f" {sample.chunks[0].sentences[0][:300]}")

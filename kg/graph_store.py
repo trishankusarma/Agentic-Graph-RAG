@@ -164,23 +164,23 @@ if __name__ == "__main__":
         store = GraphStore(graph, extractor=extractor, entity_map=entity_map)
         store.index_samples([sample])
 
-        print("\n=== Graph Stats ===")
+        logger.info("\n=== Graph Stats ===")
         for k, v in store.stats().items():
-            print(f"  {k}: {v}")
+            logger.info(f"  {k}: {v}")
 
-        print("\n=== Broken Hop Audit ===")
+        logger.info("\n=== Broken Hop Audit ===")
         report = store.check_broken_hops(sample)
         reports.append(report)
 
-        print(f"\n  Q: {sample.question[:80]}")
+        logger.info(f"\n  Q: {sample.question[:80]}")
         for k, v in report.summary().items():
-            print(f"  {k:<24}: {v}")
+            logger.info(f"  {k:<24}: {v}")
 
         for i, chain in enumerate(report.reasoning_chains):
             status = "clean" if chain.is_clean() else (
                 "connected" if chain.is_connected() else "BROKEN"
             )
-            print(f"\n  chain_{i+1} ({status}):")
+            logger.info(f"\n  chain_{i+1} ({status}):")
             for seg in chain.segments:
                 flag     = "⚠ BROKEN" if seg.is_broken else "✓"
                 fb       = " (skip-ahead)" if seg.is_fallback else ""
@@ -191,24 +191,24 @@ if __name__ == "__main__":
                         for h in seg.path_result.hops
                     ]
                     hops_str = f"  via [{', '.join(rels)}]"
-                print(f"    {seg.label}  {flag}{fb}{hops_str}")
+                logger.info(f"    {seg.label}  {flag}{fb}{hops_str}")
 
             if chain.terminal is not None:
                 t    = chain.terminal
                 mark = "⚠ BROKEN" if t.is_broken_hop else "✓"
                 gnd  = " [text-grounded]" if t.text_grounded else ""
-                print(f"    {t.label}  {mark}{gnd}")
+                logger.info(f"    {t.label}  {mark}{gnd}")
 
-    print("\n\n=== Corpus Rollup ===")
+    logger.info("\n\n=== Corpus Rollup ===")
     for k, v in aggregate(reports).items():
-        print(f"  {k:<32}: {v}")
+        logger.info(f"  {k:<32}: {v}")
 
-    print("\n=== Edge arity distribution ===")
-    print("  (all-2 means the hypergraph is really just a graph)")
+    logger.info("\n=== Edge arity distribution ===")
+    logger.info("  (all-2 means the hypergraph is really just a graph)")
     for arity, count in sorted(arity_counts.items()):
-        print(f"  arity {arity}: {count}")
+        logger.info(f"  arity {arity}: {count}")
 
-    print("\n=== Top relation labels (prompt contamination check) ===")
-    print("  (a demo label dominating a mixed corpus means the prompt leaks)")
+    logger.info("\n=== Top relation labels (prompt contamination check) ===")
+    logger.info("  (a demo label dominating a mixed corpus means the prompt leaks)")
     for label, count in relation_counts.most_common(15):
-        print(f"  {count:>4}  {label}")
+        logger.info(f"  {count:>4}  {label}")
