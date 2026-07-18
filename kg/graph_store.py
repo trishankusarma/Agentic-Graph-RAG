@@ -136,7 +136,7 @@ if __name__ == "__main__":
     POOL = 32
 
     loader  = HotpotQALoader(
-        split="validation", chunk_size=5, overlap=1, max_samples=20,
+        split="validation", chunk_size=5, overlap=1, max_samples=200,
     )
     samples = loader.load()
 
