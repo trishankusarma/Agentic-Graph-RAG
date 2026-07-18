@@ -1,85 +1,166 @@
 """
 kg/extractors/ollama_extractor.py
- 
-LLMExtractor backend for locally running Ollama models.
-Speaks the Ollama /api/chat format.
+
+LLMExtractor backend for a local Ollama server — POST /api/chat.
+
+NOTE: written to match the current LLMExtractor contract, since the original
+file wasn't on hand. Reconcile against your version before replacing it —
+the parts that matter are the four-argument _call() signature and the
+super().__init__() keyword names, both of which changed.
+
+Ollama has no constrained-decoding equivalent to vLLM's guided_json, so the
+`schema` argument is accepted and ignored. Construct with
+use_structured_output=False to skip building schemas that can't be used;
+correctness still rests on the prompt plus _validate_facts().
+
+Serving:
+    ollama serve
+    ollama pull qwen3:14b
 """
+
 import logging
+from typing import Optional
+
 import requests
+from requests.adapters import HTTPAdapter
+
 from kg.extractors.base import LLMExtractor
- 
+
 logger = logging.getLogger(__name__)
 
-# Hyper-parameters
-MODEL_NAME = "deepseek-r1:32b"
-OLLAMA_URL = "http://localhost:11434"
-MAX_TOKENS = 4096
-RETRY_LIMIT = 2
-RETRY_DELAY = 1.0
 
 class OllamaBackend(LLMExtractor):
     """
     Ollama backend — POST /api/chat.
- 
+
     Args:
-        model:      Ollama model name (e.g. "deepseek-r1:32b")
-        ollama_url: Ollama base URL (default: http://localhost:11434)
-        max_tokens: max tokens for response
-        retry_limit/retry_delay: inherited from LLMExtractor
+        model:      Model tag as pulled (e.g. "qwen3:14b", "deepseek-r1:32b").
+        api_url:    Base URL of the Ollama server.
+        pool_size:  HTTP connection pool size. Match HypergraphBuilder's
+                    max_workers.
+        num_ctx:    Context window. Ollama silently truncates to 2048 by
+                    default, which will cut the ~450-token system prompt plus a
+                    5-sentence chunk short and produce mangled JSON.
+        keep_alive: How long to keep the model resident. Without this, Ollama
+                    unloads between calls and every request pays a reload.
+        timeout:    Per-request timeout in seconds.
+
+    Concurrency caveat: Ollama does not do continuous batching the way vLLM
+    does. Set OLLAMA_NUM_PARALLEL (default 1 on older builds) or concurrent
+    requests just queue server-side and the thread pool buys nothing.
     """
+
     def __init__(
         self,
-        model:       str   = MODEL_NAME,
-        ollama_url:  str   = OLLAMA_URL,
-        max_tokens:  int   = MAX_TOKENS,
-        retry_limit: int   = RETRY_LIMIT,
-        retry_delay: float = RETRY_DELAY,
+        model:                  str   = "qwen3:14b",
+        api_url:                str   = "http://localhost:11434",
+        pool_size:              int   = 8,
+        num_ctx:                int   = 4096,
+        keep_alive:             str   = "10m",
+        timeout:                float = 180.0,
+        extraction_max_tokens:  int   = 768,
+        entity_max_tokens:      int   = 64,
+        retry_limit:            int   = 2,
+        retry_delay:            float = 1.0,
+        use_structured_output:  bool  = False,
     ):
         super().__init__(
             model=model,
-            max_tokens=max_tokens,
+            extraction_max_tokens=extraction_max_tokens,
+            entity_max_tokens=entity_max_tokens,
             retry_limit=retry_limit,
             retry_delay=retry_delay,
+            use_structured_output=use_structured_output,
         )
-        self.ollama_url = ollama_url.rstrip("/")
+        self.api_url    = api_url.rstrip("/")
+        self.num_ctx    = num_ctx
+        self.keep_alive = keep_alive
+        self.timeout    = timeout
+        self._available: Optional[bool] = None
+
+        self.session = requests.Session()
+        adapter = HTTPAdapter(
+            pool_connections=pool_size,
+            pool_maxsize=pool_size,
+            max_retries=0,      # retries live in _call_with_retry
+        )
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
 
     def is_available(self) -> bool:
+        """Memoized — HypergraphBuilder.build() calls this once per instance."""
+        if self._available is not None:
+            return self._available
+
         try:
-            resp = requests.get(f"{self.ollama_url}/api/tags", timeout=5)
+            resp = self.session.get(f"{self.api_url}/api/tags", timeout=10)
             resp.raise_for_status()
-            models = [m["name"] for m in resp.json().get("models", [])]
-            if not any(self.model in m for m in models):
-                logger.warning(
-                    f"Model '{self.model}' not found in Ollama. "
-                    f"Run: ollama pull {self.model}"
-                )
-                return False
-            logger.info(f"Ollama ready — model: {self.model}")
-            return True
-        except requests.exceptions.ConnectionError:
-            logger.error(
-                f"Cannot reach Ollama at {self.ollama_url}. "
-                "Is it running? → ollama serve"
-            )
+            tags = [m["name"] for m in resp.json().get("models", [])]
+        except requests.RequestException as e:
+            logger.error(f"Cannot reach Ollama at {self.api_url}: {e}")
+            self._available = False
+            return False
+        except (ValueError, KeyError) as e:
+            logger.error(f"Malformed /api/tags response: {e}")
+            self._available = False
             return False
 
-    def _call(self, system: str, user: str) -> str:
+        # Ollama reports "qwen3:14b"; accept a bare "qwen3" too.
+        if not any(t == self.model or t.split(":")[0] == self.model for t in tags):
+            logger.warning(
+                f"Model '{self.model}' not pulled. Available: {tags}"
+            )
+            self._available = False
+            return False
+
+        logger.info(f"Ollama ready — model: {self.model}")
+        self._available = True
+        return True
+
+    def _call(
+        self,
+        system:     str,
+        user:       str,
+        schema:     Optional[dict] = None,
+        max_tokens: Optional[int]  = None,
+    ) -> str:
+        # schema intentionally unused — no guided decoding on this backend.
         payload = {
-            "model":   self.model,
+            "model": self.model,
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user",   "content": user},
             ],
-            "stream":  False,
+            "stream":     False,
+            "keep_alive": self.keep_alive,
+            "format":     "json",   # Ollama's loose JSON mode: shape only
             "options": {
-                "num_predict": self.max_tokens,
                 "temperature": 0.0,
+                "num_ctx":     self.num_ctx,
+                "num_predict": max_tokens or self.extraction_max_tokens,
             },
         }
-        resp = requests.post(
-            f"{self.ollama_url}/api/chat",
+        resp = self.session.post(
+            f"{self.api_url}/api/chat",
             json=payload,
-            timeout=120,
+            timeout=self.timeout,
         )
         resp.raise_for_status()
-        return resp.json()["message"]["content"].strip()
+        data = resp.json()
+
+        if data.get("done_reason") == "length":
+            logger.warning(
+                f"Output truncated at {payload['options']['num_predict']} tokens "
+                "— JSON will not parse. Raise extraction_max_tokens."
+            )
+        return data["message"]["content"].strip()
+
+    def close(self) -> None:
+        self.session.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+        return False
