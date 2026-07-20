@@ -1,7 +1,9 @@
 from dataclasses import dataclass
-from .graph_models import SupportingFact
+
 from .chains import Chain, TerminalResult
-from .enums import FailureMode, TerminalStatus 
+from .enums import FailureMode, REPAIRABLE_MODES, TerminalStatus
+from .graph_models import SupportingFact
+
 
 @dataclass
 class BrokenHopReport:
@@ -50,15 +52,8 @@ class BrokenHopReport:
     def is_repairable(self) -> bool:
         """
         Whether a graph repair action could plausibly change the verdict.
-
-        Excludes samples that failed for reasons no edge insertion can fix
-        (answer not an entity, no question entities extracted).
         """
-        return self.failure_mode in (
-            FailureMode.BROKEN_MID_CHAIN,
-            FailureMode.BROKEN_TERMINAL,
-            FailureMode.PREDICATE_BROKEN,
-        )
+        return self.failure_mode in REPAIRABLE_MODES
 
     def summary(self) -> dict:
         total_broken = sum(len(c.broken_segments()) for c in self.reasoning_chains)

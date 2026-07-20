@@ -18,7 +18,7 @@ import logging
 from collections import Counter
 from typing import Optional
 
-from kg.broken_hop_detector import BrokenHopDetector
+from kg.detection.detector import BrokenHopDetector
 from kg.data_loader import HotpotSample
 from kg.extractors.base import BaseExtractor
 from kg.hypergraph_builder import KnowledgeHypergraph
