@@ -13,7 +13,7 @@ from typing import Optional
 import networkx as nx
 
 from .hypergraph_builder import HyperEdge, KnowledgeHypergraph
-from .reasoning_models import HopResult, PathResult
+from kg.reasoning_models import HopResult, PathResult
 
 logger = logging.getLogger(__name__)
 
