@@ -6,14 +6,8 @@ Extraction is fully delegated to a BaseExtractor subclass —
 swap OllamaBackend for OpenAIBackend with zero changes here.
 
 Pipeline:
-    chunks → extractor.extract(chunk) → facts → _add_fact_to_graph()
-                                                → KnowledgeHypergraph
-
-Concurrency model:
-    LLM calls run in a ThreadPoolExecutor (vLLM batches them server-side).
-    Graph mutation stays single-threaded, after the pool drains, in chunk
-    order — so the resulting graph is deterministic regardless of thread
-    scheduling.
+    chunks -> extractor.extract(chunk) -> facts -> _add_fact_to_graph()
+                                                  -> KnowledgeHypergraph
 """
 import hashlib
 import json
@@ -100,16 +94,17 @@ class HypergraphBuilder:
 
     Args:
         extractor:     Any BaseExtractor subclass.
-        cache_path:    If set, saves/loads the finished hypergraph as JSON.
-        max_workers:   Concurrent LLM calls. Should match the extractor's HTTP
-                       pool_size — if the pool is smaller, threads block waiting
-                       for a connection and the extra workers buy nothing.
+        cache_path:    If set, saves/loads the FINISHED hypergraph as JSON.
+                       Unrelated to extract_cache below — this is a whole-graph
+                       cache, keyed by nothing (one path = one graph).
+        max_workers:   Concurrent LLM calls FOR THIS build() CALL'S chunk list
+                       only. Should match the extractor's HTTP pool_size.
         extract_cache: Optional dict shared across builder instances, mapping
-                       chunk-content hash → fact list. HotpotQA distractor
-                       paragraphs repeat heavily across samples, so when you
-                       build one graph per sample this avoids re-extracting the
-                       same text. Pass the SAME dict to every builder; an
-                       instance-local cache would be discarded each iteration.
+                       chunk-content hash -> fact list. Pass the SAME dict to
+                       every builder in a run — required for both cross-sample
+                       dedup (HotpotQA distractor paragraphs repeat heavily
+                       across questions) and for warmup() to have any effect
+                       on later build() calls.
     """
 
     def __init__(
@@ -129,15 +124,44 @@ class HypergraphBuilder:
         self._done          = 0
         self._total         = 0
 
+    # Warmup — the speed fix. Extraction only, no graph construction.
+    def warmup(self, chunks: list[Chunk]) -> dict:
+        """
+        Populate the extract cache for every chunk, WITHOUT building a graph.
+
+        Call this once, up front, over the FULL flattened chunk list across
+        every sample in the run. Safe to call more than once or with overlapping chunk sets; extraction is
+        already memoized by content hash.
+
+        Returns the shared extract_cache dict
+        """
+        if not self.extractor.is_available():
+            raise RuntimeError(
+                f"Extractor {type(self.extractor).__name__} is not available. "
+                "Check your backend and model."
+            )
+
+        self._total = len(chunks)
+        self._done  = 0
+        workers = max(1, min(self.max_workers, len(chunks)))
+
+        logger.info(f"Warming extract cache for {len(chunks)} chunks ({workers} workers)...")
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            list(pool.map(self._safe_extract, chunks))
+
+        logger.info(
+            f"Warmup complete — {len(chunks)} chunks, "
+            f"{len(self._extract_cache)} unique cached"
+        )
+        return self._extract_cache
+
+    # Build — graph construction. Fast if warmup() already ran.
     def build(self, chunks: list[Chunk]) -> KnowledgeHypergraph:
         """Process all chunks and return a KnowledgeHypergraph."""
         if self.cache_path and os.path.exists(self.cache_path):
             logger.info(f"Loading hypergraph from cache: {self.cache_path}")
             return self._load_from_cache(self.cache_path)
 
-        # Checked here rather than in __init__: a cache hit above needs no
-        # backend at all, and constructing one builder per sample would
-        # otherwise fire a health-check round trip per sample.
         if not self.extractor.is_available():
             raise RuntimeError(
                 f"Extractor {type(self.extractor).__name__} is not available. "
@@ -146,9 +170,9 @@ class HypergraphBuilder:
 
         graph = KnowledgeHypergraph(nodes={}, edges={})
 
-        self._total  = len(chunks)
-        self._done   = 0
-        workers      = max(1, min(self.max_workers, len(chunks)))
+        self._total = len(chunks)
+        self._done  = 0
+        workers = max(1, min(self.max_workers, len(chunks)))
 
         logger.info(f"Extracting from {len(chunks)} chunks ({workers} workers)...")
 
@@ -223,9 +247,9 @@ class HypergraphBuilder:
         Single-threaded by contract — called only after the pool has drained.
 
         Note on the shared extract cache: is_gold is computed from the chunk
-        being processed right now, not from whichever chunk first populated the
-        cache entry. Two samples sharing identical paragraph text but different
-        supporting facts therefore still get correct gold labels.
+        being processed right now, not from whichever chunk first populated
+        the cache entry. Two samples sharing identical paragraph text but
+        different supporting facts therefore still get correct gold labels.
         """
         raw_entities   = fact["entities"]
         relation       = fact["relation"].strip().lower()
