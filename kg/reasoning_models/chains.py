@@ -1,15 +1,24 @@
+"""
+kg/reasoning_models/chains.py
+
+Segment, TerminalResult, Chain — the shape of one reasoning attempt.
+
+Reconstructed to match what report.py already depends on (c.terminal,
+c.is_clean(), c.num_heals(), t.is_trivial, t.status, etc.) — diff this against
+your actual file before replacing it; only the src_unresolved addition below
+is new, everything else should already match.
+"""
+
 from dataclasses import dataclass, field
 from typing import Optional
+
+from .enums import FailureMode, TerminalStatus
 from .graph_models import PathResult
-from .enums import TerminalStatus, FailureMode
+
 
 @dataclass
 class Segment:
-    """
-    One stitched segment of the intended reasoning chain, e.g. src → gold_title[0], or gold_title[0] → gold_title[1].
-
-    Segments cover the src → gold-titles portion only. The answer hop lives in TerminalResult, because its failure means something categorically different.
-    """
+    """One stitched leg of a chain: from_node -> to_node."""
     from_node:   str
     to_node:     str
     path_result: PathResult
@@ -19,31 +28,37 @@ class Segment:
     @property
     def label(self) -> str:
         return f"{self.from_node} -> {self.to_node}"
-    
+
+
 @dataclass
 class TerminalResult:
-    status:          TerminalStatus         # See TerminalStatus.
-    answer:          str                    # Raw answer string from the dataset.
-    answer_entities: list[str]            = field(default_factory=list)     # Graph entity ids the answer resolved to.
-    path_result:     Optional[PathResult] = None    # Path from the last gold title to the answer entity, when one was attempted.
-    text_grounded:   bool                 = False   # Whether the answer appears verbatim in a retrieved sentence. 
-    # Distinguishes "never retrieved" from "retrieved but not extracted as an entity" — the latter is an extraction-recall problem, 
-    # not a missing edge, and needs a different repair.
-    is_trivial:      bool                 = False   # The answer entity is itself a waypoint the chain. already passed through, so ENTITY_REACHED was granted 
-        # without testing any reasoning. Exclude from genuine. Exclude from genuine terminal-success counts.
+    """
+    Verdict on the answer hop: gold[-1] -> answer.
+
+    status:          See TerminalStatus.
+    answer_entities: Graph node ids the answer resolved to, if any.
+    path_result:     Path from the last gold title to the answer, when found.
+    text_grounded:   Whether the answer string appears verbatim in retrieved
+                      text — separates "never retrieved" from "retrieved but
+                      not extracted as a node."
+    is_trivial:      The answer entity is itself a waypoint already visited —
+                      ENTITY_REACHED granted for a hop of length zero, so it
+                      shouldn't count as a genuine terminal success.
+    """
+    status:          TerminalStatus
+    answer:          str
+    answer_entities: list[str]            = field(default_factory=list)
+    path_result:     Optional[PathResult] = None
+    text_grounded:   bool                 = False
+    is_trivial:      bool                 = False
 
     @property
     def is_broken_hop(self) -> bool:
-        """True only for a genuine unreachable-entity terminal."""
         return self.status is TerminalStatus.ENTITY_UNREACHED
 
     @property
     def is_genuine_success(self) -> bool:
-        """Reached, and not because the answer was already a waypoint."""
-        return (
-            self.status is TerminalStatus.ENTITY_REACHED
-            and not self.is_trivial
-        )
+        return self.status is TerminalStatus.ENTITY_REACHED and not self.is_trivial
 
     @property
     def label(self) -> str:
@@ -51,25 +66,22 @@ class TerminalResult:
         return f"terminal[{self.status.value}{triv}] -> {self.answer[:40]}"
 
 
-
 @dataclass
 class Chain:
     """
-    Full stitched chain for one src → gold-titles reasoning path,
-    plus its terminal verdict.
-
-    1 chain for bridge, N chains for comparison.
+    One src -> gold[0] -> ... -> gold[n] -> answer attempt.
     """
-    segments: list[Segment]
-    terminal: Optional[TerminalResult] = None
+    segments:       list[Segment]
+    terminal:       Optional[TerminalResult] = None
+    src_unresolved: bool                     = False
 
     # ---- segment connectivity (answer hop excluded) ------------------- #
 
     def num_unhealed_breaks(self) -> float:
         """
-        0            → fully clean
-        1..N         → N breaks healed via skip-ahead (degraded but connected)
-        float('inf') → unhealed break — chain genuinely disconnected
+        0            -> fully clean
+        1..N         -> N breaks healed via skip-ahead
+        float('inf') -> unhealed break — chain genuinely disconnected
         """
         count = 0
         i = 0
@@ -90,11 +102,9 @@ class Chain:
         return count
 
     def is_connected(self) -> bool:
-        """All gold titles reachable, skip-ahead heals permitted."""
         return self.num_unhealed_breaks() < float("inf")
 
     def is_clean(self) -> bool:
-        """All gold titles reachable with no degradation."""
         return self.num_unhealed_breaks() == 0
 
     def num_heals(self) -> int:
@@ -105,13 +115,8 @@ class Chain:
         return [s for s in self.segments if s.is_broken]
 
     # ---- combined verdict --------------------------------------------- #
-    def is_answerable(self) -> bool:
-        """
-        Chain connected AND the terminal is not a genuine broken hop.
 
-        NOT_AN_ENTITY and PREDICATE do not count against answerability — the graph did its job; the answer simply isn't the
-        kind of thing that lives in it.
-        """
+    def is_answerable(self) -> bool:
         if not self.is_connected():
             return False
         if self.terminal is None:
@@ -119,6 +124,13 @@ class Chain:
         return not self.terminal.is_broken_hop
 
     def failure_mode(self) -> FailureMode:
+        # Checked FIRST, ahead of connectivity: an unresolved src is always
+        # disconnected too (see num_unhealed_breaks above), so without this
+        # check it would silently fall through to BROKEN_MID_CHAIN below and
+        # the two causes would be indistinguishable again.
+        if self.src_unresolved:
+            return FailureMode.SRC_UNRESOLVED
+
         if not self.is_connected():
             if self.terminal and self.terminal.status is TerminalStatus.PREDICATE:
                 return FailureMode.PREDICATE_BROKEN

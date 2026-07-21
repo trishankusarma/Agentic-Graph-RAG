@@ -59,8 +59,13 @@ class ChainBuilder:
             segments.append(seg)
             i += 1
 
-        last_ents = waypoints[-1][1] if len(waypoints) > 1 else src_ents
-        terminal  = self.terminal.resolve(sample, last_ents, gold_titles)
+        if len(waypoints) > 1:
+            reached_final = bool(segments) and not segments[-1].is_broken
+            last_ents = waypoints[-1][1] if reached_final else set()
+        else:
+            last_ents = src_ents
+
+        terminal = self.terminal.resolve(sample, last_ents, gold_titles)
 
         return Chain(segments=segments, terminal=terminal)
 
