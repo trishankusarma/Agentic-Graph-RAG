@@ -1,19 +1,18 @@
 """
 kg/detection/utils.py
 
-Small helpers shared across the detection package.
+Detection-specific helpers.
 """
 
 import re
 
 from kg.data_loader import HotpotSample
+from kg.text import normalize
+
+__all__ = ["PREDICATE_ANSWERS", "answer_in_text", "normalize"]
 
 PREDICATE_ANSWERS = {"yes", "no"}
 """Answers that are computed predicates, not entities."""
-
-
-def normalize(label: str) -> str:
-    return label.lower().strip()
 
 
 def answer_in_text(sample: HotpotSample) -> bool:

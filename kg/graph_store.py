@@ -22,7 +22,7 @@ from kg.detection.detector import BrokenHopDetector
 from kg.data_loader import HotpotSample
 from kg.extractors.base import BaseExtractor
 from kg.hypergraph_builder import KnowledgeHypergraph
-from kg.path_finder import PathFinder
+from kg.graph import PathFinder
 from kg.reasoning_models import BrokenHopReport
 
 logger = logging.getLogger(__name__)
