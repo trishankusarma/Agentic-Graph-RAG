@@ -55,6 +55,17 @@ class BrokenHopReport:
         """
         return self.failure_mode in REPAIRABLE_MODES
 
+    def chain_terminal_details(self) -> list[dict]:
+        return [
+            {
+                "status":       c.terminal.status.value,
+                "is_trivial":   c.terminal.is_trivial,
+                "is_genuine":   c.terminal.is_genuine_success,
+                "is_connected": c.is_connected(),
+            }
+            for c in self.primary_chains()
+        ]
+
     def summary(self) -> dict:
         total_broken = sum(len(c.broken_segments()) for c in self.reasoning_chains)
         return {
@@ -67,6 +78,7 @@ class BrokenHopReport:
             "question_entities":    self.question_entities,
             "answer":               self.answer,
             "terminal":             [s.value for s in self.terminal_statuses()],
+            "chain_terminals":      self.chain_terminal_details(),
             "trivial_terminal":     self.has_trivial_terminal(),
             "genuine_terminal":     self.has_genuine_terminal(),
             "text_grounded":        self.is_text_grounded(),

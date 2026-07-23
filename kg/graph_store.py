@@ -106,7 +106,7 @@ if __name__ == "__main__":
     samples = loader.load()
 
     extractor = OpenAIBackend(
-        model="qwen3-14b", api_url="http://localhost:8000", pool_size=POOL,
+        model="qwen3-14b", api_url="http://localhost:8001", pool_size=POOL,
     )
 
     entity_map = prefetch_entities(extractor, samples, max_workers=POOL)
