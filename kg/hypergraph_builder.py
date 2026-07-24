@@ -20,6 +20,7 @@ from typing import Optional
 
 from kg.data_loader import Chunk
 from kg.extractors.base import BaseExtractor
+from kg.text import normalize
 
 logging.basicConfig(
     level=logging.INFO,
@@ -87,6 +88,48 @@ class KnowledgeHypergraph:
         neighbors.discard(entity_id)
         return neighbors
 
+def add_fact_to_graph(graph: KnowledgeHypergraph, fact: dict, chunk: Chunk) -> Optional[HyperEdge]:
+    raw_entities   = fact["entities"]
+    relation       = fact["relation"].strip().lower()
+    sentence_index = fact["sentence_index"]
+    confidence     = fact["confidence"]
+
+    norm_entities = [normalize(e) for e in raw_entities]
+
+    # skip degenerate facts (self-loops, duplicate entities)
+    if len(set(norm_entities)) < 2:
+        return
+
+    # deterministic edge id from content
+    edge_content = f"{sorted(norm_entities)}|{relation}|{chunk.chunk_id}"
+    edge_id = "edge_" + hashlib.md5(edge_content.encode()).hexdigest()[:12]
+
+    if edge_id in graph.edges:
+        return  # deduplicate
+
+    edge = HyperEdge(
+        edge_id        = edge_id,
+        entities       = norm_entities,
+        relation       = relation,
+        sentence_index = sentence_index,
+        sentence       = chunk.sentences[sentence_index],
+        chunk_id       = chunk.chunk_id,
+        sample_id      = chunk.sample_id,
+        confidence     = confidence,
+        is_gold        = sentence_index in chunk.gold_sentence_offsets,
+    )
+    graph.edges[edge_id] = edge
+
+    # upsert entity nodes
+    for raw, norm in zip(raw_entities, norm_entities):
+        if norm not in graph.nodes:
+            graph.nodes[norm] = EntityNode(entity_id=norm, label=raw)
+            node = graph.nodes[norm]
+        if chunk.chunk_id not in node.chunks:
+            node.chunks.append(chunk.chunk_id)
+        if edge_id not in node.edges:
+            node.edges.append(edge_id)
+    return edge
 
 class HypergraphBuilder:
     """
@@ -235,12 +278,12 @@ class HypergraphBuilder:
         with self._cache_lock:
             self._done += 1
             done = self._done
-        if done % 25 == 0 or done == self._total:
+        if done % 50 == 0 or done == self._total:
             logger.info(f"  extracted {done}/{self._total} chunks")
 
     def _add_fact_to_graph(
         self, graph: KnowledgeHypergraph, fact: dict, chunk: Chunk
-    ) -> None:
+    ) -> Optional[HyperEdge]:
         """
         Add one extracted fact as a HyperEdge + update entity nodes.
 
@@ -251,50 +294,7 @@ class HypergraphBuilder:
         the cache entry. Two samples sharing identical paragraph text but
         different supporting facts therefore still get correct gold labels.
         """
-        raw_entities   = fact["entities"]
-        relation       = fact["relation"].strip().lower()
-        sentence_index = fact["sentence_index"]
-        confidence     = fact["confidence"]
-
-        norm_entities = [self._normalize(e) for e in raw_entities]
-
-        # skip degenerate facts (self-loops, duplicate entities)
-        if len(set(norm_entities)) < 2:
-            return
-
-        # deterministic edge id from content
-        edge_content = f"{sorted(norm_entities)}|{relation}|{chunk.chunk_id}"
-        edge_id = "edge_" + hashlib.md5(edge_content.encode()).hexdigest()[:12]
-
-        if edge_id in graph.edges:
-            return  # deduplicate
-
-        edge = HyperEdge(
-            edge_id        = edge_id,
-            entities       = norm_entities,
-            relation       = relation,
-            sentence_index = sentence_index,
-            sentence       = chunk.sentences[sentence_index],
-            chunk_id       = chunk.chunk_id,
-            sample_id      = chunk.sample_id,
-            confidence     = confidence,
-            is_gold        = sentence_index in chunk.gold_sentence_offsets,
-        )
-        graph.edges[edge_id] = edge
-
-        # upsert entity nodes
-        for raw, norm in zip(raw_entities, norm_entities):
-            if norm not in graph.nodes:
-                graph.nodes[norm] = EntityNode(entity_id=norm, label=raw)
-            node = graph.nodes[norm]
-            if chunk.chunk_id not in node.chunks:
-                node.chunks.append(chunk.chunk_id)
-            if edge_id not in node.edges:
-                node.edges.append(edge_id)
-
-    @staticmethod
-    def _normalize(label: str) -> str:
-        return label.lower().strip()
+        return add_fact_to_graph(graph, fact, chunk)
 
     def _load_from_cache(self, path: str) -> KnowledgeHypergraph:
         with open(path, "r", encoding="utf-8") as f:
@@ -313,45 +313,3 @@ class HypergraphBuilder:
         }
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-
-
-if __name__ == "__main__":
-    from kg.data_loader import HotpotQALoader
-    from kg.extractors.qwen_extractor import OpenAIBackend
-
-    logger.info("1. Loading a slice of the HotpotQA dataset")
-    loader = HotpotQALoader(
-        split="validation",
-        chunk_size=5,
-        overlap=1,
-        max_samples=5,
-    )
-    samples = loader.load()
-
-    all_chunks = loader.get_all_chunks(samples)
-    logger.info(f"2. Running extraction on {len(all_chunks)} chunks")
-
-    POOL = 32
-    extractor = OpenAIBackend(
-        model="qwen3-14b",
-        api_url="http://localhost:8000",
-        pool_size=POOL,
-    )
-    builder = HypergraphBuilder(
-        extractor=extractor,
-        cache_path="data/hyper_graph_builder_qwen.json",
-        max_workers=POOL,
-    )
-    graph = builder.build(all_chunks)
-
-    logger.info("== Hypergraph Summary ==")
-    for k, v in graph.summary().items():
-        logger.info(f" {k}: {v}")
-
-    logger.info("== Sample edges ==")
-    for edge in list(graph.edges.values())[:10]:
-        logger.info(f"\n  edge_id  : {edge.edge_id}")
-        logger.info(f"  entities : {edge.entities}")
-        logger.info(f"  relation : {edge.relation}")
-        logger.info(f"  sentence : {edge.sentence[:100]}")
-        logger.info(f"  is_gold  : {edge.is_gold}")

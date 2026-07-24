@@ -9,7 +9,7 @@ own modules — if extraction quality is wrong, this is not the file to edit.
 vLLM serving:
     vllm serve /home/models/Qwen3-14B-Instruct \
         --served-model-name qwen3-14b \
-        --port 8000 \
+        --port 8001 \
         --dtype bfloat16 \
         --gpu-memory-utilization 0.92 \
         --max-model-len 4096 \
