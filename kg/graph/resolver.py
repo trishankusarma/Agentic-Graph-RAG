@@ -18,7 +18,6 @@ PathFinder per sample, so they start cold each sample by design.
 """
 
 import logging
-
 from kg.text import normalize
 
 logger = logging.getLogger(__name__)
@@ -39,7 +38,10 @@ class EntityResolver:
                     mutates it, it only reads .nodes.
     """
 
-    def __init__(self, hypergraph):
+    def __init__(
+            self, 
+            hypergraph,
+        ):
         self.hypergraph = hypergraph
 
         self._chunk_title_index:  dict[str, str]      = {}
@@ -67,9 +69,12 @@ class EntityResolver:
         }
 
         title_index: dict[str, set[str]] = {}
+        # {node0, node1, node2, ..., noden}
         for node in self.hypergraph.nodes.values():
+            # {node0_chunk0, node0_chunk1, ... node0_chunkm}
             for chunk_id in node.chunks:
-                title = self._chunk_title_index.get(chunk_id)
+                # for every chunk_id, get the chunk title
+                title = self._chunk_title_index.get(chunk_id) 
                 if title:
                     title_index.setdefault(normalize(title), set()).add(node.entity_id)
         self._title_entity_index = title_index
@@ -89,26 +94,6 @@ class EntityResolver:
     def resolve_entity(self, label: str) -> set[str]:
         """
         Resolve a free-text label to graph nodes.
-
-        Used for two things: deciding whether a dataset ANSWER is even in the
-        graph before asking whether it is reachable (an answer that never
-        resolves is not a broken hop — no edge insertion repairs it, see
-        TerminalStatus.NOT_AN_ENTITY), and resolving a question entity to a
-        chain's starting waypoint.
-
-        Tier 1 — exact normalized match.
-        Tier 2 — token-subset in EITHER direction, both sides long enough,
-                 e.g. "Robert Erskine Childers DSC" <-> "robert erskine childers".
-
-        Deliberately stricter than plain substring: `"no" in "nolan"` would
-        otherwise resolve a predicate answer to a real node and turn a
-        PREDICATE into a spurious ENTITY_UNREACHED.
-
-        Caveat worth knowing: tier 2 is bidirectional, so a single-token query
-        like "roman" matches every multi-token node containing that token
-        ("roman empire", "roman catholic church"). Downstream that becomes
-        |from| x |to| shortest-path searches in path_policy.best_path. If a
-        segment is unexpectedly slow, print len(resolve_entity(x)) first.
         """
         norm = normalize(label)
         if not norm:
@@ -151,26 +136,6 @@ class EntityResolver:
     def entities_for_title(self, title: str) -> set[str]:
         """
         Return graph entity ids associated with a Wikipedia article title.
-
-        Tiers run in order and the FIRST non-empty one wins — they are NOT
-        unioned. Each is looser than the last, so unioning would let the
-        loosest dominate and the stricter tiers would stop mattering.
-
-        Tier 1 — chunk title metadata: entities actually extracted from that
-                 article's text. Real provenance. Requires index_samples().
-        Tier 2 — entity id equals the normalized title exactly.
-        Tier 3 — entity's tokens are a subset of the title's tokens, entity at
-                 least MIN_FUZZY_ENTITY_LEN chars.
-
-        Tier 3 is narrower than plain containment on purpose: naive substring
-        matched "ed" against "Ed Wood" and returned dozens of entities, and
-        best_path() then runs |from| x |to| shortest-path searches over that.
-
-        Note tier 3 is one-directional (node tokens subset of title tokens),
-        unlike resolve_entity's tier 2 which goes both ways. Intentional: a
-        title is a fixed reference string, so entities NARROWER than the title
-        belong to it ("jonathan stark" -> "Jonathan Stark (tennis)"), but an
-        entity BROADER than the title does not.
         """
         title_norm = normalize(title)
 

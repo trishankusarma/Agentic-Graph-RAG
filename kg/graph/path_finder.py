@@ -3,8 +3,7 @@ kg/graph/path_finder.py
 
 Facade composing projection + resolver + traversal + stats.
 
-The public API is UNCHANGED from the old monolithic PathFinder, so every
-existing call site (GraphStore, ChainBuilder, TerminalResolver, Pairing)
+Every existing call site (GraphStore, ChainBuilder, TerminalResolver, Pairing)
 keeps working with no edits:
 
     path_between, edges_on_path, neighbors,
