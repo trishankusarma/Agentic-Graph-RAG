@@ -29,7 +29,9 @@ from . import config
 from .prompts import (
     ENTITY_EXTRACTION_PROMPT,
     EXTRACTION_SYSTEM_PROMPT,
+    REPAIR_SYSTEM_PROMPT,
     build_extraction_prompt,
+    build_repair_prompt,
 )
 from .schemas import ENTITY_SCHEMA, FACT_SCHEMA
 from .validation import validate_facts
@@ -99,6 +101,7 @@ class LLMExtractor(BaseExtractor):
         entity_max_tokens:      int           = config.ENTITY_MAX_TOKENS,
         retry_limit:            int           = config.RETRY_LIMIT,
         retry_delay:            float         = config.RETRY_DELAY,
+        repair_temperature:     float         = config.REPAIR_TEMPERATURE,
     ):
         self.model                 = model
         self.use_structured_output = use_structured_output
@@ -106,6 +109,7 @@ class LLMExtractor(BaseExtractor):
         self.entity_max_tokens     = entity_max_tokens
         self.retry_limit           = retry_limit
         self.retry_delay           = retry_delay
+        self.repair_temperature    = repair_temperature
 
         self.debug_dir: Optional[Path] = None
         if debug_dir:
@@ -116,8 +120,10 @@ class LLMExtractor(BaseExtractor):
         self._lock = threading.Lock()
         self.parse_failures: dict[str, str] = {}   # chunk_id -> reason
         self.reject_counts:  Counter        = Counter()
-        self._calls        = 0
-        self._facts_valid  = 0
+        self._calls              = 0
+        self._facts_valid        = 0
+        self._repair_calls       = 0
+        self._repair_facts_found = 0
 
     # ------------------------------------------------------------------ #
     # Public API
@@ -148,6 +154,47 @@ class LLMExtractor(BaseExtractor):
             logger.debug(f"{chunk.chunk_id}: rejected {dict(rejects)}")
         return valid
 
+    def extract_targeted(
+        self,
+        chunk: Chunk,
+        src: str,
+        dst: str,
+        goal: str = "",
+    ) -> list[dict]:
+        """
+        Re-extract a chunk, conditioned on a connection the caller is looking for.
+
+        Same output contract as extract() — validated fact dicts, same shape, so
+        hypergraph_builder.add_fact_to_graph consumes them identically. The
+        difference is entirely in the prompt (see prompts.REPAIR_SYSTEM_PROMPT for
+        why a separate prompt is necessary rather than reusing extract()).
+
+        Returns [] when the passage does not support a connection, which is a
+        legitimate and expected outcome — the caller should treat "no facts" as
+        "this gap is not repairable from this chunk", not as an error.
+        """
+        raw = self._call_with_retry(
+            REPAIR_SYSTEM_PROMPT,
+            build_repair_prompt(chunk.sentences, src=src, dst=dst, goal=goal),
+            label=f"repair:{chunk.chunk_id}:{src[:20]}->{dst[:20]}",
+            schema=FACT_SCHEMA if self.use_structured_output else None,
+            max_tokens=self.extraction_max_tokens,
+            temperature=self.repair_temperature,
+        )
+        if raw is None:
+            return []
+
+        parsed = self._parse_json(raw, label=f"repair:{chunk.chunk_id}", record=False)
+        if parsed is None:
+            return []
+
+        valid, rejects = validate_facts(parsed, chunk.sentences)
+        with self._lock:
+            self.reject_counts.update(rejects)
+            self._repair_calls += 1
+            self._repair_facts_found += len(valid)
+        return valid
+
     def extract_entities(self, question: str) -> list[str]:
         """Extract named entities from a question. Returns [] on any failure."""
         raw = self._call_with_retry(
@@ -172,10 +219,11 @@ class LLMExtractor(BaseExtractor):
     @abstractmethod
     def _call(
         self,
-        system:     str,
-        user:       str,
-        schema:     Optional[dict] = None,
-        max_tokens: Optional[int]  = None,
+        system:      str,
+        user:        str,
+        schema:      Optional[dict]  = None,
+        max_tokens:  Optional[int]   = None,
+        temperature: Optional[float] = None,
     ) -> str:
         """
         One call to the LLM backend.
@@ -185,7 +233,10 @@ class LLMExtractor(BaseExtractor):
             user:       User message.
             schema:     JSON Schema for constrained decoding, or None. Backends
                         without constrained decoding should ignore it.
-            max_tokens: Output cap for this call.
+            max_tokens:  Output cap for this call.
+            temperature: Sampling temperature, or None for the backend default
+                         (0.0). Only repair extraction passes a nonzero value —
+                         see extract_targeted().
 
         Returns:
             Raw response string; may contain <think> blocks or markdown fences,
@@ -205,8 +256,9 @@ class LLMExtractor(BaseExtractor):
         system:     str,
         user:       str,
         label:      str            = "",
-        schema:     Optional[dict] = None,
-        max_tokens: Optional[int]  = None,
+        schema:      Optional[dict]  = None,
+        max_tokens:  Optional[int]   = None,
+        temperature: Optional[float] = None,
     ) -> Optional[str]:
         """Call _call() with retry on transport errors. None on total failure."""
         with self._lock:
@@ -214,7 +266,10 @@ class LLMExtractor(BaseExtractor):
 
         for attempt in range(self.retry_limit + 1):
             try:
-                return self._call(system, user, schema=schema, max_tokens=max_tokens)
+                return self._call(
+                    system, user, schema=schema,
+                    max_tokens=max_tokens, temperature=temperature,
+                )
             except Exception as e:
                 if attempt < self.retry_limit:
                     logger.warning(
@@ -284,6 +339,8 @@ class LLMExtractor(BaseExtractor):
                 "calls":          self._calls,
                 "parse_failures": len(self.parse_failures),
                 "facts_valid":    self._facts_valid,
+                "repair_calls":   self._repair_calls,
+                "repair_facts":   self._repair_facts_found,
                 "facts_rejected": {k.value: v for k, v in self.reject_counts.items()},
             }
 
@@ -294,3 +351,5 @@ class LLMExtractor(BaseExtractor):
             self.reject_counts.clear()
             self._calls = 0
             self._facts_valid = 0
+            self._repair_calls = 0
+            self._repair_facts_found = 0

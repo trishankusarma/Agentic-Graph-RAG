@@ -98,3 +98,82 @@ def build_extraction_prompt(sentences: list[str]) -> str:
     """Number the sentences so the model can cite sentence_index."""
     numbered = "\n".join(f"[{i}] {s}" for i, s in enumerate(sentences))
     return f"Extract all relational facts from the following passage:\n\n{numbered}"
+
+
+# --------------------------------------------------------------------------- #
+# Targeted repair extraction
+# --------------------------------------------------------------------------- #
+
+REPAIR_SYSTEM_PROMPT = f"""You are a Knowledge Graph repair engine.
+
+A reasoning system is traversing a knowledge graph and has hit a dead end: it needs
+to get from one entity to another, but no edge connecting them exists in the graph.
+Your job is to re-read the source passage and find the connection that was missed.
+
+You will receive a passage where every sentence is prefixed with a sentence index,
+plus a SOURCE entity and a TARGET the system is trying to reach.
+
+Return facts that help connect SOURCE to TARGET. A fact helps if it:
+- directly relates SOURCE and TARGET, or
+- relates SOURCE (or TARGET) to an intermediate entity that plausibly bridges them.
+
+Rules for "relation":
+- Derive the label from the main verb or predicate of the sentence you are
+  extracting from. Build it out of words that actually appear in that sentence.
+
+Rules for "entities":
+- Use proper nouns, named concepts, dates, or quantities.
+- Keep surface forms exactly as they appear in the sentence.
+- NEVER put more than {MAX_FACT_ARITY} entities in a single fact.
+- Do not repeat the same entity twice within one fact.
+
+Critical constraints:
+- Every fact MUST come from a single sentence in the passage below. Do NOT use
+  outside knowledge, and do NOT combine information across sentence indices.
+- If the passage genuinely does not support any connection, return an empty array [].
+  An empty array is the correct answer when the link is not in the text. Do NOT
+  invent a plausible-sounding edge to satisfy the request.
+- Return at most {MAX_FACTS_PER_SENTENCE} facts total. Prefer the single most direct
+  connection over many weak ones.
+- Return ONLY a JSON array, no explanation, no markdown fences.
+
+Output format (the angle-bracket values are PLACEHOLDERS showing shape only — never
+emit them literally, and never treat them as example labels):
+
+[
+  {{
+    "entities": ["<entity_from_sentence>", "<another_entity>"],
+    "relation": "<snake_case_verb_from_that_sentence>",
+    "sentence_index": 0,
+    "confidence": 0.95
+  }}
+]"""
+
+def build_repair_prompt(
+    sentences: list[str],
+    src: str,
+    dst: str,
+    goal: str = "",
+) -> str:
+    """
+    Args:
+        sentences: The source chunk's sentences (numbered for sentence_index).
+        src:       Entity the agent is reasoning FROM.
+        dst:       Entity or description the agent is trying to reach. May be a
+                    description rather than a named entity ("the film's director") —
+                    that is fine and often the point, since the agent frequently does
+                    not yet know the name of what it is looking for.
+        goal:      Optional free-text statement of what the agent is trying to
+                    establish. Passed straight through from the agent's own tool call,
+                    so it reflects the actual sub-goal rather than a reconstruction.
+    """
+    numbered = "\n".join(f"[{i}] {s}" for i, s in enumerate(sentences))
+    goal_line = f"\nWHAT THE SYSTEM IS TRYING TO ESTABLISH: {goal}" if goal.strip() else ""
+    return (
+        f"SOURCE entity: {src}\n"
+        f"TARGET to reach: {dst}"
+        f"{goal_line}\n\n"
+        f"Passage:\n\n{numbered}\n\n"
+        f"Find facts in this passage that connect SOURCE toward TARGET. "
+        f"Return [] if the passage does not support any connection."
+    )

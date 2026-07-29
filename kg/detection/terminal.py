@@ -70,6 +70,15 @@ class TerminalResolver:
                 is_trivial=trivial,
             )
 
+        if any(normalize(t) == answer_norm for t in gold_titles):
+            return TerminalResult(
+                status=TerminalStatus.ENTITY_REACHED,
+                answer=answer,
+                answer_entities=sorted(answer_entities),
+                text_grounded=grounded,
+                is_trivial=True,
+            )
+
         # The answer entity IS the waypoint: no hop to make, none tested.
         if trivial and (answer_entities & from_ents):
             return TerminalResult(

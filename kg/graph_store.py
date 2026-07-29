@@ -35,7 +35,7 @@ class GraphStore:
         entity_map: Optional[dict[str, list[str]]] = None,
     ):
         self.extractor   = extractor
-        self.path_finder = PathFinder(hypergraph, directed=directed)
+        self.path_finder = PathFinder(hypergraph, directed=directed, use_semantic=False)
         self.detector    = BrokenHopDetector(
             self.path_finder, extractor, entity_map=entity_map
         )

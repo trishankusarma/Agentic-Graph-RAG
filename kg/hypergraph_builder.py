@@ -20,7 +20,6 @@ from typing import Optional
 
 from kg.data_loader import Chunk
 from kg.extractors.base import BaseExtractor
-from kg.text import normalize
 
 logging.basicConfig(
     level=logging.INFO,
@@ -88,24 +87,35 @@ class KnowledgeHypergraph:
         neighbors.discard(entity_id)
         return neighbors
 
-def add_fact_to_graph(graph: KnowledgeHypergraph, fact: dict, chunk: Chunk) -> Optional[HyperEdge]:
+
+def normalize_entity(label: str) -> str:
+    return label.lower().strip()
+
+
+def add_fact_to_graph(
+    graph: "KnowledgeHypergraph", fact: dict, chunk: Chunk
+) -> Optional["HyperEdge"]:
+    """
+    Add one extracted fact as a HyperEdge + update entity nodes. Returns the
+    new HyperEdge, or None if the fact was degenerate or already present.
+    """
     raw_entities   = fact["entities"]
     relation       = fact["relation"].strip().lower()
     sentence_index = fact["sentence_index"]
     confidence     = fact["confidence"]
 
-    norm_entities = [normalize(e) for e in raw_entities]
+    norm_entities = [normalize_entity(e) for e in raw_entities]
 
     # skip degenerate facts (self-loops, duplicate entities)
     if len(set(norm_entities)) < 2:
-        return
+        return None
 
     # deterministic edge id from content
     edge_content = f"{sorted(norm_entities)}|{relation}|{chunk.chunk_id}"
     edge_id = "edge_" + hashlib.md5(edge_content.encode()).hexdigest()[:12]
 
     if edge_id in graph.edges:
-        return  # deduplicate
+        return None  # deduplicate — caller can tell "already known" from None
 
     edge = HyperEdge(
         edge_id        = edge_id,
@@ -120,16 +130,57 @@ def add_fact_to_graph(graph: KnowledgeHypergraph, fact: dict, chunk: Chunk) -> O
     )
     graph.edges[edge_id] = edge
 
-    # upsert entity nodes
     for raw, norm in zip(raw_entities, norm_entities):
         if norm not in graph.nodes:
             graph.nodes[norm] = EntityNode(entity_id=norm, label=raw)
-            node = graph.nodes[norm]
+        node = graph.nodes[norm]
         if chunk.chunk_id not in node.chunks:
             node.chunks.append(chunk.chunk_id)
         if edge_id not in node.edges:
             node.edges.append(edge_id)
+
     return edge
+
+
+def add_repaired_fact_to_graph(
+    graph: "KnowledgeHypergraph",
+    fact: dict,
+    chunk: Chunk,
+    path_finder,
+    verbose: bool = False,
+) -> tuple[Optional["HyperEdge"], list[tuple[str, str]]]:
+    """
+    Like add_fact_to_graph, but snaps each entity onto an EXISTING graph node when
+    one unambiguously refers to the same thing. Returns (edge, snaps) where snaps is
+    a list of (raw_surface_form, existing_node_id) pairs that were merged.
+    """
+    snaps: list[tuple[str, str]] = []
+    resolved_entities = []
+
+    for raw_entity in fact["entities"]:
+        norm = normalize_entity(raw_entity)
+
+        if norm in graph.nodes:
+            resolved_entities.append(norm)          # already exact, nothing to do
+            continue
+
+        existing = path_finder.resolve_entity(raw_entity)
+        if len(existing) == 1:
+            node_id = next(iter(existing))
+            resolved_entities.append(node_id)
+            if node_id != norm:
+                snaps.append((raw_entity, node_id))
+                if verbose:
+                    logger.info(f"  snapped {raw_entity!r} -> existing node {node_id!r}")
+        else:
+            # zero matches (genuinely new entity) or several (ambiguous) — keep the
+            # extractor's own form rather than guessing
+            resolved_entities.append(norm)
+
+    snapped_fact = {**fact, "entities": resolved_entities}
+    edge = add_fact_to_graph(graph, snapped_fact, chunk)
+    return edge, snaps
+
 
 class HypergraphBuilder:
     """
@@ -167,16 +218,24 @@ class HypergraphBuilder:
         self._done          = 0
         self._total         = 0
 
+    # ------------------------------------------------------------------ #
     # Warmup — the speed fix. Extraction only, no graph construction.
+    # ------------------------------------------------------------------ #
+
     def warmup(self, chunks: list[Chunk]) -> dict:
         """
         Populate the extract cache for every chunk, WITHOUT building a graph.
 
         Call this once, up front, over the FULL flattened chunk list across
-        every sample in the run. Safe to call more than once or with overlapping chunk sets; extraction is
+        every sample in the run — see the module docstring for why. Safe to
+        call more than once or with overlapping chunk sets; extraction is
         already memoized by content hash.
 
-        Returns the shared extract_cache dict
+        Returns the shared extract_cache dict (same object as
+        self._extract_cache), so the caller can inspect hit rate:
+
+            cache = builder.warmup(all_chunks)
+            print(f"{len(all_chunks)} chunks -> {len(cache)} unique")
         """
         if not self.extractor.is_available():
             raise RuntimeError(
@@ -198,13 +257,16 @@ class HypergraphBuilder:
         )
         return self._extract_cache
 
+    # ------------------------------------------------------------------ #
     # Build — graph construction. Fast if warmup() already ran.
+    # ------------------------------------------------------------------ #
+
     def build(self, chunks: list[Chunk]) -> KnowledgeHypergraph:
         """Process all chunks and return a KnowledgeHypergraph."""
         if self.cache_path and os.path.exists(self.cache_path):
             logger.info(f"Loading hypergraph from cache: {self.cache_path}")
             return self._load_from_cache(self.cache_path)
-
+        
         if not self.extractor.is_available():
             raise RuntimeError(
                 f"Extractor {type(self.extractor).__name__} is not available. "
@@ -283,18 +345,12 @@ class HypergraphBuilder:
 
     def _add_fact_to_graph(
         self, graph: KnowledgeHypergraph, fact: dict, chunk: Chunk
-    ) -> Optional[HyperEdge]:
-        """
-        Add one extracted fact as a HyperEdge + update entity nodes.
-
-        Single-threaded by contract — called only after the pool has drained.
-
-        Note on the shared extract cache: is_gold is computed from the chunk
-        being processed right now, not from whichever chunk first populated
-        the cache entry. Two samples sharing identical paragraph text but
-        different supporting facts therefore still get correct gold labels.
-        """
+    ) -> Optional["HyperEdge"]:
         return add_fact_to_graph(graph, fact, chunk)
+
+    @staticmethod
+    def _normalize(label: str) -> str:
+        return label.lower().strip()
 
     def _load_from_cache(self, path: str) -> KnowledgeHypergraph:
         with open(path, "r", encoding="utf-8") as f:
@@ -304,8 +360,6 @@ class HypergraphBuilder:
         return KnowledgeHypergraph(nodes=nodes, edges=edges)
 
     def _save_to_cache(self, graph: KnowledgeHypergraph, path: str) -> None:
-        """asdict() rather than hand-listing fields — adding a field to
-        HyperEdge would otherwise silently drop it from the cache."""
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         data = {
             "nodes": {nid: asdict(n) for nid, n in graph.nodes.items()},

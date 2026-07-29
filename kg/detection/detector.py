@@ -91,8 +91,8 @@ class BrokenHopDetector:
         ]
 
         logger.info(
-            f"[{sample.hop_type}] Q: {sample.question[:60]}... | "
-            f"entities: {question_entities} | answer: {sample.answer}"
+            f"[{sample.hop_type}] Q: {sample.question}... | "
+            f"question entities: {question_entities} | answer: {sample.answer}"
         )
 
         if not question_entities:

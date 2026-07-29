@@ -7,6 +7,7 @@ Loads HotpotQA and prepares chunked context paragraphs for hypergraph extraction
 import json
 import logging
 import os
+import html
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from typing import Optional
@@ -99,6 +100,7 @@ class HotpotQALoader:
             "chunk_size":  self.chunk_size,
             "overlap":     self.overlap,
             "max_samples": self.max_samples,
+            "text_version": 2,
         }
 
     def load(self) -> list[HotpotSample]:
@@ -132,7 +134,6 @@ class HotpotQALoader:
         return samples
 
     # ------------------------------------------------------------------ #
-
     def _process_sample(self, row: dict) -> HotpotSample:
         """Convert one raw HotpotQA row into a HotpotSample."""
         gold_sentences_dict: dict[str, list[int]] = defaultdict(list)
@@ -140,15 +141,16 @@ class HotpotQALoader:
             row["supporting_facts"]["title"],
             row["supporting_facts"]["sent_id"],
         ):
-            gold_sentences_dict[title].append(sentence_id)
+            gold_sentences_dict[html.unescape(title)].append(sentence_id)
 
         chunks: list[Chunk] = []
         chunk_idx = 0
         for title, sents in zip(row["context"]["title"], row["context"]["sentences"]):
+            title = html.unescape(title)
             article_chunks, chunk_idx = self._chunk_sentences(
                 sample_id      = row["id"],
                 title          = title,
-                sentences      = sents,
+                sentences      = [html.unescape(s) for s in sents],
                 gold_sentences = gold_sentences_dict.get(title, []),
                 chunk_idx      = chunk_idx,
             )
@@ -156,8 +158,8 @@ class HotpotQALoader:
 
         return HotpotSample(
             sample_id      = row["id"],
-            question       = row["question"],
-            answer         = row["answer"],
+            question       = html.unescape(row["question"]),
+            answer         = html.unescape(row["answer"]),
             hop_type       = row["type"],
             level          = row["level"],
             chunks         = chunks,

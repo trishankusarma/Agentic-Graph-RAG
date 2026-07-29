@@ -46,6 +46,18 @@ Output cap for fact extraction.
 ENTITY_MAX_TOKENS = 64
 """Output cap for question entity extraction — a handful of short strings."""
 
+REPAIR_TEMPERATURE = 0.3
+"""
+Sampling temperature for targeted repair extraction only. Build-time extraction
+stays at 0.0.
+ 
+Repair runs on a chunk that has ALREADY been extracted at temperature 0.0. Running it
+again at 0.0 biases hard toward reproducing the same facts the first pass produced,
+all of which dedupe away against the deterministic edge_id hash in
+hypergraph_builder.add_fact_to_graph — the repair prompt's different conditioning does
+most of the work, but a little sampling diversity is what lets the second look
+actually differ from the first rather than mostly re-deriving it.
+"""
 
 # --------------------------------------------------------------------------- #
 # Transport

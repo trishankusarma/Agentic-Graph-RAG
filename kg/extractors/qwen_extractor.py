@@ -1,5 +1,5 @@
 """
-kg/extractors/qwen_extractor.py
+kg/extractors/openai_extractor.py
 
 Backend for any OpenAI-compatible API (vLLM, LM Studio, OpenAI, together.ai).
 
@@ -15,7 +15,7 @@ vLLM serving:
         --max-model-len 4096 \
         --enable-prefix-caching \
         --max-num-seqs 64 \
-        --max-num-batched-tokens 8192
+        --max-num-batched-tokens 65536
 
     --enable-prefix-caching matters: the system prompt is byte identical on
     every call, so it is prefilled once instead of N times.
@@ -143,12 +143,13 @@ class OpenAIBackend(LLMExtractor):
 
     def _call(
         self,
-        system:     str,
-        user:       str,
-        schema:     Optional[dict] = None,
-        max_tokens: Optional[int]  = None,
+        system:      str,
+        user:        str,
+        schema:      Optional[dict]  = None,
+        max_tokens:  Optional[int]   = None,
+        temperature: Optional[float] = None,
     ) -> str:
-        payload = self._build_payload(system, user, schema, max_tokens)
+        payload = self._build_payload(system, user, schema, max_tokens, temperature)
 
         resp = self.session.post(
             f"{self.api_url}/v1/chat/completions",
@@ -160,10 +161,11 @@ class OpenAIBackend(LLMExtractor):
 
     def _build_payload(
         self,
-        system:     str,
-        user:       str,
-        schema:     Optional[dict],
-        max_tokens: Optional[int],
+        system:      str,
+        user:        str,
+        schema:      Optional[dict],
+        max_tokens:  Optional[int],
+        temperature: Optional[float] = None,
     ) -> dict:
         payload = {
             "model": self.model,
@@ -172,7 +174,8 @@ class OpenAIBackend(LLMExtractor):
                 {"role": "user",   "content": user},
             ],
             "max_tokens":  max_tokens or self.extraction_max_tokens,
-            "temperature": 0.0,
+            # 0.0 for extraction; only repair passes a nonzero value, see
+            "temperature": 0.0 if temperature is None else temperature,
             # Qwen3 chat-template flag. Harmless for other models, but it
             # silently no-ops on some vLLM builds — confirm no <think> block
             # in the response before trusting it.
