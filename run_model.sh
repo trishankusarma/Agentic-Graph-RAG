@@ -11,4 +11,7 @@ echo "Starting Agentic-Graph-RAG Pipeline..."
 
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 
-python3 -m kg.graph_store
+# python3 -m kg.graph_store
+# python -m experiments.validate_repair --no-use_semantic
+# python -m experiments.validate_repair --use_semantic
+python3 -m experiments.evaluate_em_f1

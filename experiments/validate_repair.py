@@ -10,16 +10,6 @@ This gates the whole repair-as-an-action direction. Read the result honestly:
     <15%  the remaining broken hops are NOT extraction-recall failures, and the
           framing needs to change before more code gets written
 
-Why the per-sample max_workers is deliberately tiny
----------------------------------------------------
-HypergraphBuilder.build() does `min(max_workers, len(chunks))`. A 14-chunk sample
-with max_workers=14 submits every chunk simultaneously with nothing queued behind
-it, which is exactly the regime where vLLM returns well-formed garbage (measured:
-164 nodes at 12 workers vs 23 nodes at 14 on the same sample). The corpus warmup
-does not have this problem — 2840 chunks means the opening burst is ~1% of the
-work — but per-sample builds do. After warmup every per-sample build is 100% cache
-hits anyway, so a low worker count costs nothing.
-
 Outputs data/repair_validation.json for post-hoc analysis.
 """
 
@@ -27,6 +17,7 @@ import json
 import logging
 import time
 from collections import Counter
+import argparse
 
 from kg.data_loader import HotpotQALoader
 from kg.detection import BrokenHopDetector, prefetch_entities
@@ -48,7 +39,7 @@ logger = logging.getLogger(__name__)
 API_URL          = "http://localhost:8001"
 MODEL            = "qwen3-14b"
 MAX_SAMPLES      = 200
-WARMUP_POOL      = 32     # safe: opening burst is ~1% of 2840 chunks
+WARMUP_POOL      = 64     # safe: opening burst is ~1% of 2840 chunks
 PER_SAMPLE_POOL  = 4      # see module docstring — must stay well under len(chunks)
 MAX_CHUNKS_PER_REPAIR = 3
 OUTPUT_PATH      = "data/repair_validation.json"
@@ -80,7 +71,7 @@ def candidate_chunks_for(graph, sample, *entity_sets):
     return [c for c in sample.chunks if c.chunk_id in chunk_ids]
 
 
-def build_graph_and_detect(sample, extractor, extract_cache, entity_map):
+def build_graph_and_detect(sample, extractor, extract_cache, entity_map, use_semantic):
     """Fresh graph + detector for one sample. All cache hits after warmup."""
     builder = HypergraphBuilder(
         extractor=extractor,
@@ -89,7 +80,7 @@ def build_graph_and_detect(sample, extractor, extract_cache, entity_map):
     )
     graph = builder.build(sample.chunks)
 
-    path_finder = PathFinder(graph, use_semantic=True)
+    path_finder = PathFinder(graph, use_semantic=use_semantic)
     path_finder.index_samples([sample])
     detector = BrokenHopDetector(path_finder, extractor, entity_map=entity_map)
     return graph, path_finder, detector
@@ -102,24 +93,6 @@ def repair_targets(report, sample):
     Two distinct kinds of gap need different targets:
       - broken segment  : connect two waypoints on the chain
       - broken terminal : connect the last gold title to the answer itself
-
-    FIX 1 — iterate EVERY primary chain, not just the best one.
-    The previous version picked min(num_unhealed_breaks), i.e. the chain that is
-    doing BEST. But a sample's failure_mode comes from worst_mode() across all
-    chains, so for a comparison sample the best chain can be perfectly clean
-    while its sibling is broken — and repair then targeted nothing at all.
-    That produced 4 samples with `attempts: []` in the first validation run:
-    counted as failures without ever having been attempted. The true denominator
-    was 43, not 47.
-
-    FIX 2 — skip self-loop targets (src == dst after normalization).
-    Four samples produced targets like "Leo Varadkar" -> "Leo Varadkar", which
-    arise when the ANSWER is literally the name of a gold article title. No
-    extraction can connect an entity to itself, so these calls were pure waste.
-    They are skipped here, but note that skipping them does NOT make those
-    samples pass — the underlying issue is that the terminal reports
-    ENTITY_UNREACHED when it should report ENTITY_REACHED (trivial). See
-    diagnose_self_loops.py; the fix belongs in TerminalResolver, not here.
     """
     targets = []
     seen = set()
@@ -236,7 +209,7 @@ def attempt_repair(sample, graph, path_finder, extractor, report):
 # main
 # --------------------------------------------------------------------------- #
 
-def main():
+def main(args):
     t0 = time.time()
 
     loader = HotpotQALoader(
@@ -268,7 +241,7 @@ def main():
 
     for i, sample in enumerate(samples, 1):
         graph, path_finder, detector = build_graph_and_detect(
-            sample, extractor, extract_cache, entity_map,
+            sample, extractor, extract_cache, entity_map, args.use_semantic
         )
         report = detector.check(sample)
         mode = report.summary()["failure_mode"]
@@ -289,7 +262,7 @@ def main():
 
     for i, sample in enumerate(repairable, 1):
         graph, path_finder, detector = build_graph_and_detect(
-            sample, extractor, extract_cache, entity_map,
+            sample, extractor, extract_cache, entity_map, args.use_semantic
         )
         report_before = detector.check(sample)
         mode_before = report_before.summary()["failure_mode"]
@@ -300,7 +273,7 @@ def main():
 
         # Re-detect against the MUTATED graph — PathFinder caches resolution,
         # so it must be rebuilt, not reused.
-        path_finder_after = PathFinder(graph, use_semantic=True)
+        path_finder_after = PathFinder(graph, use_semantic=args.use_semantic)
         path_finder_after.index_samples([sample])
         detector_after = BrokenHopDetector(
             path_finder_after, extractor, entity_map=entity_map,
@@ -377,6 +350,14 @@ def main():
     print(f"\nWrote {OUTPUT_PATH}   ({time.time()-t0:.0f}s total)")
     print(f"extractor stats: {extractor.stats()}")
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Validate repair flips"
+    )
+    parser.add_argument("--use_semantic", action=argparse.BooleanOptionalAction,
+                         default=False, help="Whether to use semantic embeddings")
+    return parser.parse_args()
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    main(args)
