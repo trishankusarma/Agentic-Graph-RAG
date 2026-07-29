@@ -54,14 +54,21 @@ from kg.hypergraph_builder import HypergraphBuilder, add_repaired_fact_to_graph
 logging.basicConfig(level=logging.WARNING,
                     format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 
-API_URL         = "http://localhost:8001"
+API_URL         = "http://localhost:8002"
 MODEL           = "qwen3-14b"
 MAX_SAMPLES     = 200
-WARMUP_POOL     = 64
+WARMUP_POOL     = 32
 PER_SAMPLE_POOL = 4
 GEN_WORKERS     = 8
 TOP_K           = 8
 MAX_HOPS        = 2
+OVERRETRIEVE    = 20   # hyperedges fetched per top_k slot before deduping;
+                       # 5 was not enough (6.6 avg facts vs text_rag's 8.0)
+USE_SEMANTIC    = True # MUST match the resolver config the graph was measured
+                       # under. With False, src_unresolved samples get an empty
+                       # frontier in retrieve_graph AND are skipped entirely by
+                       # repair_broken_segments, silently answering closed-book
+                       # while labelled `graph`.
 OUTPUT_PATH     = "data/em_f1_results.json"
 
 CONDITIONS = ["closed_book", "text_rag", "graph", "graph_repair"]
@@ -190,21 +197,7 @@ def retrieve_graph(backend, sample, graph, path_finder, question_entities, top_k
 
     index = SemanticIndex.build(backend, pairs)
     qvec = backend.encode([sample.question])[0]
-
-    # Over-retrieve, THEN dedupe down to top_k.
-    #
-    # Several hyperedges routinely share one source sentence (a 5-sentence
-    # chunk yielding ~8 facts per sentence means heavy overlap), so asking for
-    # top_k hyperedges and deduping afterwards collapsed 8 hits into ~3 unique
-    # sentences. Measured: graph conditions averaged 3.2 facts against
-    # text_rag's 8.0 — a 2.5x context deficit that made the graph-vs-text
-    # comparison meaningless, since the graph condition was answering from far
-    # less evidence rather than worse evidence.
-    #
-    # text_rag has no such problem because it indexes sentences directly, so
-    # its hits are unique by construction. The 5x over-retrieve is a heuristic
-    # margin: if avg facts still comes out below top_k, raise it.
-    hits = index.search(qvec, top_k=top_k * 5, min_similarity=0.0)
+    hits = index.search(qvec, top_k=top_k * OVERRETRIEVE, min_similarity=0.0)
     lookup = dict(pairs)
     seen, facts = set(), []
     for hit_id, _score in hits:
@@ -294,7 +287,7 @@ def main():
     for i, sample in enumerate(samples, 1):
         graph = HypergraphBuilder(extractor=extractor, max_workers=PER_SAMPLE_POOL,
                                   extract_cache=extract_cache).build(sample.chunks)
-        pf = PathFinder(graph)
+        pf = PathFinder(graph, use_semantic=USE_SEMANTIC)
         pf.index_samples([sample])
         detector = BrokenHopDetector(pf, extractor, entity_map=entity_map)
         report = detector.check(sample)
@@ -312,7 +305,7 @@ def main():
             "broken_mid_chain", "broken_terminal", "predicate_broken"
         ):
             n_added = repair_broken_segments(sample, graph, pf, extractor, report)
-        pf_after = PathFinder(graph)
+        pf_after = PathFinder(graph, use_semantic=USE_SEMANTIC)
         pf_after.index_samples([sample])
         contexts["graph_repair"] = retrieve_graph(
             backend, sample, graph, pf_after, q_entities, TOP_K)
@@ -326,6 +319,14 @@ def main():
         })
         if i % 25 == 0:
             print(f"  {i}/{len(samples)}  ({time.time()-t0:.0f}s)")
+
+    total_repair_edges = sum(r["repair_edges"] for r in per_sample)
+    n_repaired = sum(1 for r in per_sample if r["repair_edges"] > 0)
+    print(f"\nrepair: {total_repair_edges} edges added across {n_repaired} samples")
+    if total_repair_edges == 0:
+        print("  WARNING: repair added nothing — graph_repair will be IDENTICAL")
+        print("  to graph, and its row is meaningless. Check that resolve_entity")
+        print("  finds src_ents (needs use_semantic=True for src_unresolved cases).")
 
     # ---- generate + score --------------------------------------------------- #
 
@@ -380,10 +381,27 @@ def main():
     if budgets and (max(budgets) - min(budgets)) > 1.0:
         print(f"\n  WARNING: fact budgets differ by more than 1.0 "
               f"({min(budgets):.1f} to {max(budgets):.1f}) — the graph-vs-text "
-              f"comparison is confounded by context size, not quality. "
-              f"Raise the over-retrieve multiplier in retrieve_graph.")
+              f"comparison is confounded by context size, not quality.")
     else:
         print(f"\n  fact budgets matched within 1.0 — comparison is fair")
+
+    # If graph conditions still fall short after over-retrieving, the cause may
+    # be STRUCTURAL rather than a tuning problem: a sample whose 2-hop
+    # neighbourhood spans fewer than top_k distinct source sentences cannot
+    # reach the budget at any multiplier. That is itself a finding — it means
+    # graph retrieval is inherently narrower than text retrieval here, not just
+    # configured worse.
+    for condition in ("graph", "graph_repair"):
+        short = [r for r in results[condition] if r["n_facts"] < TOP_K]
+        if not short:
+            continue
+        avg_short = sum(r["n_facts"] for r in short) / len(short)
+        em_short = 100 * sum(r["em"] for r in short) / len(short)
+        full = [r for r in results[condition] if r["n_facts"] >= TOP_K]
+        em_full = (100 * sum(r["em"] for r in full) / len(full)) if full else float("nan")
+        print(f"\n  [{condition}] {len(short)}/{len(results[condition])} samples "
+              f"below the {TOP_K}-fact budget (avg {avg_short:.1f})")
+        print(f"      EM on those: {em_short:.2f}   vs {em_full:.2f} on full-budget samples")
 
     # Does `answerable` predict EM? This validates the whole diagnostic.
     print("\n" + "=" * 66)
