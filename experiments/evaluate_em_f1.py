@@ -54,7 +54,7 @@ from kg.hypergraph_builder import HypergraphBuilder, add_repaired_fact_to_graph
 logging.basicConfig(level=logging.WARNING,
                     format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 
-API_URL         = "http://localhost:8002"
+API_URL         = "http://localhost:8001"
 MODEL           = "qwen3-14b"
 MAX_SAMPLES     = 200
 WARMUP_POOL     = 32
@@ -71,7 +71,14 @@ USE_SEMANTIC    = True # MUST match the resolver config the graph was measured
                        # while labelled `graph`.
 OUTPUT_PATH     = "data/em_f1_results.json"
 
-CONDITIONS = ["closed_book", "text_rag", "graph", "graph_repair"]
+CONDITIONS = ["closed_book", "text_rag", "graph", "graph_repair",
+              "graph_guided", "graph_guided_repair"]
+
+GUIDED_HOPS  = 5   # guided search stays narrow, so depth is affordable here in
+                   # a way it is not for the unguided 2-hop collect-everything
+GUIDED_BEAM  = 4   # edges followed per hop; BEAM * HOPS should exceed TOP_K so
+                   # the budget can actually be filled
+GUIDED_MIN_SIM = 0.15  # stop expanding a branch below this; untuned
 
 
 # --------------------------------------------------------------------------- #
@@ -197,6 +204,20 @@ def retrieve_graph(backend, sample, graph, path_finder, question_entities, top_k
 
     index = SemanticIndex.build(backend, pairs)
     qvec = backend.encode([sample.question])[0]
+
+    # Over-retrieve, THEN dedupe down to top_k.
+    #
+    # Several hyperedges routinely share one source sentence (a 5-sentence
+    # chunk yielding ~8 facts per sentence means heavy overlap), so asking for
+    # top_k hyperedges and deduping afterwards collapsed 8 hits into ~3 unique
+    # sentences. Measured: graph conditions averaged 3.2 facts against
+    # text_rag's 8.0 — a 2.5x context deficit that made the graph-vs-text
+    # comparison meaningless, since the graph condition was answering from far
+    # less evidence rather than worse evidence.
+    #
+    # text_rag has no such problem because it indexes sentences directly, so
+    # its hits are unique by construction. The 5x over-retrieve is a heuristic
+    # margin: if avg facts still comes out below top_k, raise it.
     hits = index.search(qvec, top_k=top_k * OVERRETRIEVE, min_similarity=0.0)
     lookup = dict(pairs)
     seen, facts = set(), []
@@ -204,6 +225,104 @@ def retrieve_graph(backend, sample, graph, path_finder, question_entities, top_k
         sentence = lookup[hit_id]
         if sentence not in seen:
             seen.add(sentence)
+            facts.append(sentence)
+            if len(facts) >= top_k:
+                break
+    return facts
+
+
+def score_all_edges(backend, graph, question):
+    """
+    Embed every hyperedge sentence ONCE per sample and dot against the question.
+
+    Guided traversal needs a similarity score at every hop; rebuilding an index
+    per hop would mean 200 samples x 5 hops of redundant encoding. Scores are
+    fixed given (graph, question), so compute them once.
+    """
+    items = list(graph.edges.items())
+    if not items:
+        return {}, {}
+    sentences = [edge.sentence for _eid, edge in items]
+    vectors = backend.encode(sentences)
+    qvec = backend.encode([question])[0]
+    sims = vectors @ qvec          # both L2-normalized -> cosine
+    edge_score = {eid: float(sims[i]) for i, (eid, _e) in enumerate(items)}
+    edge_sentence = {eid: edge.sentence for eid, edge in items}
+    return edge_score, edge_sentence
+
+
+def retrieve_graph_guided(backend, sample, graph, path_finder, question_entities,
+                          top_k, max_hops=GUIDED_HOPS, beam=GUIDED_BEAM,
+                          min_sim=GUIDED_MIN_SIM):
+    """
+    Beam search over the graph, steered by question similarity at every step.
+
+    Contrast with retrieve_graph, which does two disconnected passes: expand
+    blindly to MAX_HOPS collecting every incident edge, then rank the whole pile
+    once. There, similarity never influences WHERE the walk goes — so a repaired
+    edge cannot redirect anything, which is why graph and graph_repair came out
+    identical to four decimal places.
+
+    Here each hop picks the `beam` highest-scoring unseen edges from the current
+    frontier, follows them, and expands from THEIR entities. A new edge can
+    therefore change which branch is taken, giving repair a causal path to the
+    retrieved context for the first time.
+
+    The tradeoff is deliberate: at equal depth this returns a SUBSET of what the
+    unguided version collects, so it should not win at max_hops=2. Its case is
+    depth — an unguided 5-hop expansion would collect most of the graph and
+    swamp the ranking, while a beam of 4 stays bounded.
+    """
+    frontier = set()
+    for entity in question_entities:
+        frontier |= path_finder.resolve_entity(entity)
+    if not frontier:
+        return []
+
+    edge_score, edge_sentence = score_all_edges(backend, graph, sample.question)
+    if not edge_score:
+        return []
+
+    visited_nodes = set(frontier)
+    seen_edges = set()
+    collected = []          # (score, edge_id)
+
+    for _hop in range(max_hops):
+        candidates = []
+        for node_id in frontier:
+            node = graph.nodes.get(node_id)
+            if node is None:
+                continue
+            for eid in node.edges:
+                if eid in seen_edges or eid not in edge_score:
+                    continue
+                candidates.append((edge_score[eid], eid))
+        if not candidates:
+            break
+
+        candidates.sort(reverse=True)
+        chosen = [(sc, eid) for sc, eid in candidates[:beam] if sc >= min_sim]
+        if not chosen:
+            break
+
+        next_frontier = set()
+        for score, eid in chosen:
+            seen_edges.add(eid)
+            collected.append((score, eid))
+            for entity_id in graph.edges[eid].entities:
+                if entity_id not in visited_nodes:
+                    visited_nodes.add(entity_id)
+                    next_frontier.add(entity_id)
+        frontier = next_frontier
+        if not frontier:
+            break
+
+    collected.sort(reverse=True)
+    seen_text, facts = set(), []
+    for _score, eid in collected:
+        sentence = edge_sentence[eid]
+        if sentence not in seen_text:
+            seen_text.add(sentence)
             facts.append(sentence)
             if len(facts) >= top_k:
                 break
@@ -296,7 +415,9 @@ def main():
         contexts = {
             "closed_book": [],
             "text_rag":    retrieve_text(backend, sample, TOP_K),
-            "graph":       retrieve_graph(backend, sample, graph, pf, q_entities, TOP_K),
+            "graph":        retrieve_graph(backend, sample, graph, pf, q_entities, TOP_K),
+            "graph_guided": retrieve_graph_guided(
+                backend, sample, graph, pf, q_entities, TOP_K),
         }
 
         # repair mutates the graph, so this must come after the `graph` context
@@ -308,6 +429,8 @@ def main():
         pf_after = PathFinder(graph, use_semantic=USE_SEMANTIC)
         pf_after.index_samples([sample])
         contexts["graph_repair"] = retrieve_graph(
+            backend, sample, graph, pf_after, q_entities, TOP_K)
+        contexts["graph_guided_repair"] = retrieve_graph_guided(
             backend, sample, graph, pf_after, q_entities, TOP_K)
 
         per_sample.append({
@@ -391,7 +514,7 @@ def main():
     # reach the budget at any multiplier. That is itself a finding — it means
     # graph retrieval is inherently narrower than text retrieval here, not just
     # configured worse.
-    for condition in ("graph", "graph_repair"):
+    for condition in ("graph", "graph_repair", "graph_guided", "graph_guided_repair"):
         short = [r for r in results[condition] if r["n_facts"] < TOP_K]
         if not short:
             continue
